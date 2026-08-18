@@ -1,0 +1,60 @@
+﻿@model Asistente.Web.Models.ChatViewModel
+
+@{
+    ViewData["Title"] = "Asistente Inteligente Empresarial";
+}
+
+<link rel="stylesheet" href="~/css/chat.css" />
+
+<div class="chat-page" data-api-base-url="@Model.ApiBaseUrl">
+    <section class="chat-card">
+        <header class="chat-header">
+            <div>
+                <p class="chat-eyebrow">IA LOCAL · OLLAMA</p>
+                <h1>Asistente Inteligente Empresarial</h1>
+                <p class="chat-subtitle">
+                    Consulta información y recibe respuestas generadas localmente.
+                </p>
+            </div>
+
+            <button id="clearButton" type="button" class="btn btn-outline-light">
+                Limpiar conversación
+            </button>
+        </header>
+
+        <main id="chatMessages" class="chat-messages" aria-live="polite">
+            <article class="message message-assistant">
+                <span class="message-role">Asistente</span>
+                <p>
+                    ¡Hola! Soy tu asistente inteligente empresarial.
+                    ¿En qué puedo ayudarte hoy?
+                </p>
+            </article>
+        </main>
+
+        <div id="loadingIndicator" class="loading-indicator d-none">
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            La IA está generando una respuesta...
+        </div>
+
+        <footer class="chat-composer">
+            <label for="messageInput" class="visually-hidden">
+                Escribe tu mensaje
+            </label>
+
+            <textarea id="messageInput"
+                      class="form-control"
+                      rows="2"
+                      maxlength="2000"
+                      placeholder="Escribe tu pregunta aquí..."></textarea>
+
+            <button id="sendButton" type="button" class="btn btn-primary">
+                Enviar
+            </button>
+        </footer>
+
+        <p id="validationMessage" class="validation-message" role="alert"></p>
+    </section>
+</div>
+
+<script src="~/js/chat.js"></script>
