@@ -3,9 +3,6 @@ using System.Net;
 using System.Net.Http.Json;
 using Asistente.Application.DTOs;
 using Asistente.Application.Interfaces;
-using Asistente.Domain.Entities;
-using Asistente.Domain.Interfaces;
-using Asistente.Domain.ValueObjects;
 using Asistente.Infrastructure.Models;
 using Asistente.Infrastructure.Options;
 using Microsoft.Extensions.Logging;
@@ -14,9 +11,9 @@ using Microsoft.Extensions.Options;
 namespace Asistente.Infrastructure.Services;
 
 /// <summary>
-/// Implementa la comunicación HTTP con el proveedor local Ollama.
+/// Implementación del proveedor local de IA mediante Ollama.
 /// </summary>
-public class OllamaService : IAsistenteIA, IAIProvider
+public class OllamaService : IAIProvider
 {
     private readonly HttpClient _httpClient;
     private readonly OllamaOptions _options;
@@ -32,42 +29,10 @@ public class OllamaService : IAsistenteIA, IAIProvider
         _logger = logger;
     }
 
-    /// <summary>
-    /// Método temporal compatible con el flujo implementado en la Etapa 1.
-    /// </summary>
-    public async Task<RespuestaIA> GenerarRespuestaAsync(
-        IReadOnlyCollection<Mensaje> mensajes,
-        CancellationToken cancellationToken = default)
-    {
-        var request = new ChatRequestDto
-        {
-            Mensajes = mensajes.Select(mensaje => new MensajeDto
-            {
-                IdMensaje = mensaje.IdMensaje,
-                IdConversacion = mensaje.IdConversacion,
-                Rol = mensaje.Rol.ToString(),
-                Contenido = mensaje.Contenido,
-                FechaHora = mensaje.FechaHora,
-                TiempoRespuestaMs = mensaje.TiempoRespuestaMs
-            }).ToList()
-        };
-
-        var response = await SendAsync(request, cancellationToken);
-
-        return new RespuestaIA(
-            response.Contenido,
-            response.TiempoRespuestaMs);
-    }
-
-    /// <summary>
-    /// Envía el historial de mensajes al proveedor de IA configurado.
-    /// </summary>
     public async Task<ChatResponseDto> SendAsync(
         ChatRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-
         var ollamaRequest = new OllamaChatRequest
         {
             Model = _options.Model,
@@ -128,7 +93,8 @@ public class OllamaService : IAsistenteIA, IAIProvider
                 TiempoRespuestaMs = (int)cronometro.ElapsedMilliseconds
             };
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException)
+            when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogError(
                 "Ollama excedió el tiempo máximo de espera de {TimeoutSeconds} segundos.",
@@ -149,7 +115,7 @@ public class OllamaService : IAsistenteIA, IAIProvider
 
     private static string ConvertirRol(string rol)
     {
-        return rol.Trim().ToLowerInvariant() switch
+        return rol.ToLowerInvariant() switch
         {
             "usuario" or "user" => "user",
             "asistente" or "assistant" => "assistant",

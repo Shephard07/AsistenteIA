@@ -30,7 +30,7 @@ public static class DependencyInjection
 
         services.AddScoped<IConversacionRepository, ConversacionRepository>();
 
-        services.AddHttpClient<OllamaService>(
+        services.AddHttpClient<IAIProvider, OllamaService>(
             (serviceProvider, httpClient) =>
             {
                 var ollamaOptions = serviceProvider
@@ -43,14 +43,6 @@ public static class DependencyInjection
                 httpClient.Timeout = TimeSpan.FromSeconds(
                     ollamaOptions.TimeoutSeconds);
             });
-
-        // Compatibilidad temporal con el flujo de la Etapa 1.
-        services.AddScoped<IAsistenteIA>(serviceProvider =>
-            serviceProvider.GetRequiredService<OllamaService>());
-
-        // Contrato desacoplado para proveedores de IA de la Etapa 2.
-        services.AddScoped<IAIProvider>(serviceProvider =>
-            serviceProvider.GetRequiredService<OllamaService>());
 
         return services;
     }
