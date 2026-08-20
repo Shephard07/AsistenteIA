@@ -3,7 +3,7 @@ using Asistente.Application.Interfaces;
 using Asistente.Application.Services;
 using Asistente.Application.Validators;
 using Asistente.Domain.Entities;
-using Asistente.Domain.Interfaces;
+using Asistente.Domain.Enums;
 using FluentValidation;
 using Moq;
 using Xunit;
@@ -12,21 +12,28 @@ namespace Asistente.Tests.Services;
 
 public class EnviarMensajeServiceTests
 {
-    private readonly Mock<IConversacionRepository> _repositoryMock = new();
+    private readonly Mock<IConversacionService> _conversacionServiceMock = new();
+    private readonly Mock<IMensajeService> _mensajeServiceMock = new();
     private readonly Mock<IAIProvider> _aiProviderMock = new();
     private readonly EnviarMensajeRequestValidator _validator = new();
 
     [Fact]
-    public async Task EjecutarAsync_Debe_Crear_Conversacion_Y_Devolver_Respuesta()
+    public async Task EjecutarAsync_Debe_Registrar_Mensajes_Y_Devolver_Respuesta()
     {
-        _repositoryMock
-            .Setup(repository => repository.AgregarAsync(
-                It.IsAny<Conversacion>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        var conversacion = new Conversacion();
 
-        _repositoryMock
-            .Setup(repository => repository.GuardarCambiosAsync(
+        _conversacionServiceMock
+            .Setup(service => service.ObtenerOCrearAsync(
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(conversacion);
+
+        _mensajeServiceMock
+            .Setup(service => service.RegistrarAsync(
+                It.IsAny<Conversacion>(),
+                It.IsAny<RolMensaje>(),
+                It.IsAny<string>(),
+                It.IsAny<int?>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -51,35 +58,34 @@ public class EnviarMensajeServiceTests
         Assert.Equal("Respuesta generada para la prueba.", response.Respuesta);
         Assert.Equal(250, response.TiempoRespuestaMs);
 
-        _repositoryMock.Verify(
-            repository => repository.AgregarAsync(
-                It.IsAny<Conversacion>(),
+        _mensajeServiceMock.Verify(
+            service => service.RegistrarAsync(
+                conversacion,
+                RolMensaje.Usuario,
+                "Hola, necesito una recomendación.",
+                null,
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
-        _repositoryMock.Verify(
-            repository => repository.GuardarCambiosAsync(
-                It.IsAny<CancellationToken>()),
-            Times.Exactly(2));
-
-        _aiProviderMock.Verify(
-            provider => provider.SendAsync(
-                It.Is<ChatRequestDto>(request =>
-                    request.Mensajes.Count == 1 &&
-                    request.Mensajes.First().Contenido ==
-                    "Hola, necesito una recomendación."),
+        _mensajeServiceMock.Verify(
+            service => service.RegistrarAsync(
+                conversacion,
+                RolMensaje.Asistente,
+                "Respuesta generada para la prueba.",
+                250,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task EjecutarAsync_Debe_Lanzar_Error_Cuando_No_Existe_Conversacion()
+    public async Task EjecutarAsync_Debe_Propagar_Error_Cuando_No_Existe_Conversacion()
     {
-        _repositoryMock
-            .Setup(repository => repository.ObtenerPorIdAsync(
+        _conversacionServiceMock
+            .Setup(service => service.ObtenerOCrearAsync(
                 99,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Conversacion?)null);
+            .ThrowsAsync(new KeyNotFoundException(
+                "La conversación solicitada no existe."));
 
         var service = CrearServicio();
 
@@ -94,14 +100,20 @@ public class EnviarMensajeServiceTests
     [Fact]
     public async Task EjecutarAsync_Debe_Propagar_Error_Del_Proveedor_IA()
     {
-        _repositoryMock
-            .Setup(repository => repository.AgregarAsync(
-                It.IsAny<Conversacion>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        var conversacion = new Conversacion();
 
-        _repositoryMock
-            .Setup(repository => repository.GuardarCambiosAsync(
+        _conversacionServiceMock
+            .Setup(service => service.ObtenerOCrearAsync(
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(conversacion);
+
+        _mensajeServiceMock
+            .Setup(service => service.RegistrarAsync(
+                It.IsAny<Conversacion>(),
+                It.IsAny<RolMensaje>(),
+                It.IsAny<string>(),
+                It.IsAny<int?>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -120,8 +132,12 @@ public class EnviarMensajeServiceTests
                 Mensaje = "Consulta de prueba"
             }));
 
-        _repositoryMock.Verify(
-            repository => repository.GuardarCambiosAsync(
+        _mensajeServiceMock.Verify(
+            service => service.RegistrarAsync(
+                conversacion,
+                RolMensaje.Usuario,
+                "Consulta de prueba",
+                null,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -141,9 +157,9 @@ public class EnviarMensajeServiceTests
             exception.Errors,
             error => error.ErrorMessage == "El mensaje es obligatorio.");
 
-        _aiProviderMock.Verify(
-            provider => provider.SendAsync(
-                It.IsAny<ChatRequestDto>(),
+        _conversacionServiceMock.Verify(
+            service => service.ObtenerOCrearAsync(
+                It.IsAny<int?>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -151,7 +167,8 @@ public class EnviarMensajeServiceTests
     private EnviarMensajeService CrearServicio()
     {
         return new EnviarMensajeService(
-            _repositoryMock.Object,
+            _conversacionServiceMock.Object,
+            _mensajeServiceMock.Object,
             _aiProviderMock.Object,
             _validator);
     }

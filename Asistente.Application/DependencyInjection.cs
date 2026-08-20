@@ -12,6 +12,8 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<IEnviarMensajeService, EnviarMensajeService>();
+        services.AddScoped<IConversacionService, ConversacionService>();
+        services.AddScoped<IMensajeService, MensajeService>();
 
         services.AddValidatorsFromAssemblyContaining<
             EnviarMensajeRequestValidator>();

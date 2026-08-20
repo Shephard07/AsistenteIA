@@ -1,27 +1,28 @@
 ﻿using Asistente.Application.DTOs;
 using Asistente.Application.Interfaces;
-using Asistente.Domain.Entities;
 using Asistente.Domain.Enums;
-using Asistente.Domain.Interfaces;
 using FluentValidation;
 
 namespace Asistente.Application.Services;
 
 /// <summary>
-/// Coordina el envío, la respuesta de IA y el registro de mensajes.
+/// Coordina el envío de mensajes, el proveedor de IA y el registro de la conversación.
 /// </summary>
 public class EnviarMensajeService : IEnviarMensajeService
 {
-    private readonly IConversacionRepository _conversacionRepository;
+    private readonly IConversacionService _conversacionService;
+    private readonly IMensajeService _mensajeService;
     private readonly IAIProvider _aiProvider;
     private readonly IValidator<EnviarMensajeRequestDto> _validator;
 
     public EnviarMensajeService(
-    IConversacionRepository conversacionRepository,
-    IAIProvider aiProvider,
-    IValidator<EnviarMensajeRequestDto> validator)
+        IConversacionService conversacionService,
+        IMensajeService mensajeService,
+        IAIProvider aiProvider,
+        IValidator<EnviarMensajeRequestDto> validator)
     {
-        _conversacionRepository = conversacionRepository;
+        _conversacionService = conversacionService;
+        _mensajeService = mensajeService;
         _aiProvider = aiProvider;
         _validator = validator;
     }
@@ -32,39 +33,19 @@ public class EnviarMensajeService : IEnviarMensajeService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        // FluentValidation se ejecuta antes de la lógica de negocio.
         await _validator.ValidateAndThrowAsync(
             request,
             cancellationToken);
 
-        Conversacion conversacion;
+        var conversacion = await _conversacionService.ObtenerOCrearAsync(
+            request.IdConversacion,
+            cancellationToken);
 
-        if (request.IdConversacion.HasValue)
-        {
-            conversacion = await _conversacionRepository.ObtenerPorIdAsync(
-                request.IdConversacion.Value,
-                cancellationToken)
-                ?? throw new KeyNotFoundException(
-                    "La conversación solicitada no existe.");
-        }
-        else
-        {
-            conversacion = new Conversacion();
-
-            await _conversacionRepository.AgregarAsync(
-                conversacion,
-                cancellationToken);
-        }
-
-        var mensajeUsuario = new Mensaje(
+        await _mensajeService.RegistrarAsync(
+            conversacion,
             RolMensaje.Usuario,
-            request.Mensaje);
-
-        conversacion.AgregarMensaje(mensajeUsuario);
-
-        // Se guarda primero el mensaje del usuario para conservar
-        // el registro incluso si el proveedor IA presenta un error.
-        await _conversacionRepository.GuardarCambiosAsync(
+            request.Mensaje,
+            null,
             cancellationToken);
 
         var chatRequest = new ChatRequestDto
@@ -84,14 +65,11 @@ public class EnviarMensajeService : IEnviarMensajeService
             chatRequest,
             cancellationToken);
 
-        var mensajeAsistente = new Mensaje(
+        await _mensajeService.RegistrarAsync(
+            conversacion,
             RolMensaje.Asistente,
             respuestaIA.Contenido,
-            respuestaIA.TiempoRespuestaMs);
-
-        conversacion.AgregarMensaje(mensajeAsistente);
-
-        await _conversacionRepository.GuardarCambiosAsync(
+            respuestaIA.TiempoRespuestaMs,
             cancellationToken);
 
         return new EnviarMensajeResponseDto
