@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
+using Asistente.Application.DTOs;
+using Asistente.Application.Interfaces;
 using Asistente.Domain.Entities;
-using Asistente.Domain.Enums;
 using Asistente.Domain.Interfaces;
 using Asistente.Domain.ValueObjects;
 using Asistente.Infrastructure.Models;
@@ -12,9 +13,10 @@ using Microsoft.Extensions.Options;
 
 namespace Asistente.Infrastructure.Services;
 
-/// Implementa la comunicación HTTP con el servicio local Ollama.
-
-public class OllamaService : IAsistenteIA
+/// <summary>
+/// Implementa la comunicación HTTP con el proveedor local Ollama.
+/// </summary>
+public class OllamaService : IAsistenteIA, IAIProvider
 {
     private readonly HttpClient _httpClient;
     private readonly OllamaOptions _options;
@@ -30,17 +32,49 @@ public class OllamaService : IAsistenteIA
         _logger = logger;
     }
 
+    /// <summary>
+    /// Método temporal compatible con el flujo implementado en la Etapa 1.
+    /// </summary>
     public async Task<RespuestaIA> GenerarRespuestaAsync(
         IReadOnlyCollection<Mensaje> mensajes,
         CancellationToken cancellationToken = default)
     {
-        var request = new OllamaChatRequest
+        var request = new ChatRequestDto
+        {
+            Mensajes = mensajes.Select(mensaje => new MensajeDto
+            {
+                IdMensaje = mensaje.IdMensaje,
+                IdConversacion = mensaje.IdConversacion,
+                Rol = mensaje.Rol.ToString(),
+                Contenido = mensaje.Contenido,
+                FechaHora = mensaje.FechaHora,
+                TiempoRespuestaMs = mensaje.TiempoRespuestaMs
+            }).ToList()
+        };
+
+        var response = await SendAsync(request, cancellationToken);
+
+        return new RespuestaIA(
+            response.Contenido,
+            response.TiempoRespuestaMs);
+    }
+
+    /// <summary>
+    /// Envía el historial de mensajes al proveedor de IA configurado.
+    /// </summary>
+    public async Task<ChatResponseDto> SendAsync(
+        ChatRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var ollamaRequest = new OllamaChatRequest
         {
             Model = _options.Model,
             Stream = false,
             Think = false,
             KeepAlive = _options.KeepAlive,
-            Messages = mensajes.Select(mensaje => new OllamaChatMessage
+            Messages = request.Mensajes.Select(mensaje => new OllamaChatMessage
             {
                 Role = ConvertirRol(mensaje.Rol),
                 Content = mensaje.Contenido
@@ -53,7 +87,7 @@ public class OllamaService : IAsistenteIA
         {
             using var response = await _httpClient.PostAsJsonAsync(
                 "api/chat",
-                request,
+                ollamaRequest,
                 cancellationToken);
 
             cronometro.Stop();
@@ -88,9 +122,11 @@ public class OllamaService : IAsistenteIA
                     "Ollama no devolvió una respuesta válida.");
             }
 
-            return new RespuestaIA(
-                respuesta.Message.Content.Trim(),
-                (int)cronometro.ElapsedMilliseconds);
+            return new ChatResponseDto
+            {
+                Contenido = respuesta.Message.Content.Trim(),
+                TiempoRespuestaMs = (int)cronometro.ElapsedMilliseconds
+            };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -111,12 +147,12 @@ public class OllamaService : IAsistenteIA
         }
     }
 
-    private static string ConvertirRol(RolMensaje rol)
+    private static string ConvertirRol(string rol)
     {
-        return rol switch
+        return rol.Trim().ToLowerInvariant() switch
         {
-            RolMensaje.Usuario => "user",
-            RolMensaje.Asistente => "assistant",
+            "usuario" or "user" => "user",
+            "asistente" or "assistant" => "assistant",
             _ => throw new ArgumentOutOfRangeException(nameof(rol))
         };
     }

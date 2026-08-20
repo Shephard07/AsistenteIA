@@ -1,40 +1,41 @@
-﻿using Asistente.Application.Interfaces;
+﻿using Asistente.Application.DTOs;
+using Asistente.Application.Interfaces;
 using Asistente.Domain.Entities;
 using Asistente.Domain.Enums;
 using Asistente.Domain.Interfaces;
-using Asistente.Shared.Models;
+using FluentValidation;
 
 namespace Asistente.Application.Services;
 
+/// <summary>
 /// Coordina el envío, la respuesta de IA y el registro de mensajes.
+/// </summary>
 public class EnviarMensajeService : IEnviarMensajeService
 {
     private readonly IConversacionRepository _conversacionRepository;
-    private readonly IAsistenteIA _asistenteIA;
+    private readonly IAIProvider _aiProvider;
+    private readonly IValidator<EnviarMensajeRequestDto> _validator;
 
     public EnviarMensajeService(
-        IConversacionRepository conversacionRepository,
-        IAsistenteIA asistenteIA)
+    IConversacionRepository conversacionRepository,
+    IAIProvider aiProvider,
+    IValidator<EnviarMensajeRequestDto> validator)
     {
         _conversacionRepository = conversacionRepository;
-        _asistenteIA = asistenteIA;
+        _aiProvider = aiProvider;
+        _validator = validator;
     }
 
-    public async Task<EnviarMensajeResponse> EjecutarAsync(
-        EnviarMensajeRequest request,
+    public async Task<EnviarMensajeResponseDto> EjecutarAsync(
+        EnviarMensajeRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        if (request is null)
-        {
-            throw new ArgumentNullException(nameof(request));
-        }
+        ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(request.Mensaje))
-        {
-            throw new ArgumentException(
-                "El mensaje no puede estar vacío.",
-                nameof(request.Mensaje));
-        }
+        // FluentValidation se ejecuta antes de la lógica de negocio.
+        await _validator.ValidateAndThrowAsync(
+            request,
+            cancellationToken);
 
         Conversacion conversacion;
 
@@ -61,13 +62,26 @@ public class EnviarMensajeService : IEnviarMensajeService
 
         conversacion.AgregarMensaje(mensajeUsuario);
 
-        // Se guarda primero el mensaje del usuario.
-        // Así queda registrado incluso si Ollama presenta un error.
+        // Se guarda primero el mensaje del usuario para conservar
+        // el registro incluso si el proveedor IA presenta un error.
         await _conversacionRepository.GuardarCambiosAsync(
             cancellationToken);
 
-        var respuestaIA = await _asistenteIA.GenerarRespuestaAsync(
-            conversacion.Mensajes.ToList(),
+        var chatRequest = new ChatRequestDto
+        {
+            Mensajes = conversacion.Mensajes.Select(mensaje => new MensajeDto
+            {
+                IdMensaje = mensaje.IdMensaje,
+                IdConversacion = mensaje.IdConversacion,
+                Rol = mensaje.Rol.ToString(),
+                Contenido = mensaje.Contenido,
+                FechaHora = mensaje.FechaHora,
+                TiempoRespuestaMs = mensaje.TiempoRespuestaMs
+            }).ToList()
+        };
+
+        var respuestaIA = await _aiProvider.SendAsync(
+            chatRequest,
             cancellationToken);
 
         var mensajeAsistente = new Mensaje(
@@ -80,7 +94,7 @@ public class EnviarMensajeService : IEnviarMensajeService
         await _conversacionRepository.GuardarCambiosAsync(
             cancellationToken);
 
-        return new EnviarMensajeResponse
+        return new EnviarMensajeResponseDto
         {
             IdConversacion = conversacion.IdConversacion,
             Respuesta = respuestaIA.Contenido,

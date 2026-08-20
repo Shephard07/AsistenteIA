@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Asistente.Application.Interfaces;
+﻿using Asistente.Application.Interfaces;
 using Asistente.Application.Services;
+using Asistente.Application.Validators;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Asistente.Application;
@@ -15,6 +12,9 @@ public static class DependencyInjection
         this IServiceCollection services)
     {
         services.AddScoped<IEnviarMensajeService, EnviarMensajeService>();
+
+        services.AddValidatorsFromAssemblyContaining<
+            EnviarMensajeRequestValidator>();
 
         return services;
     }

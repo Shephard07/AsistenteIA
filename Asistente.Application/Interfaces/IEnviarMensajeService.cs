@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Asistente.Shared.Models;
+﻿using Asistente.Application.DTOs;
 
 namespace Asistente.Application.Interfaces;
 
 public interface IEnviarMensajeService
 {
-    Task<EnviarMensajeResponse> EjecutarAsync(
-        EnviarMensajeRequest request,
+    Task<EnviarMensajeResponseDto> EjecutarAsync(
+        EnviarMensajeRequestDto request,
         CancellationToken cancellationToken = default);
 }

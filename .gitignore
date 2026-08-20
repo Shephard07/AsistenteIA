@@ -9,3 +9,6 @@
 # Archivos generados al compilar
 **/bin/
 **/obj/
+
+# Registros generados por Serilog
+**/Logs/
