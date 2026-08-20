@@ -4,5 +4,6 @@
   <Project Path="Asistente.Domain/Asistente.Domain.csproj" />
   <Project Path="Asistente.Infrastructure/Asistente.Infrastructure.csproj" />
   <Project Path="Asistente.Shared/Asistente.Shared.csproj" />
+  <Project Path="Asistente.Tests/Asistente.Tests.csproj" Id="98fb325a-03d3-49ff-b9bc-88eb28c03f68" />
   <Project Path="Asistente.Web/Asistente.Web.csproj" />
 </Solution>

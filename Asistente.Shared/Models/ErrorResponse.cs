@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace Asistente.Shared.Models;
 
-public class ErrorResponse
+public sealed class ErrorResponse
 {
-    public string Mensaje { get; set; } = string.Empty;
+    public string Mensaje { get; init; } = string.Empty;
+
+    public IReadOnlyCollection<string> Errores { get; init; }
+        = Array.Empty<string>();
 }

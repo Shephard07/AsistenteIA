@@ -1,10 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;
-using Asistente.Domain.Entities;
-using Asistente.Domain.Enums;
-using Asistente.Domain.Interfaces;
-using Asistente.Domain.ValueObjects;
+using Asistente.Application.DTOs;
+using Asistente.Application.Interfaces;
 using Asistente.Infrastructure.Models;
 using Asistente.Infrastructure.Options;
 using Microsoft.Extensions.Logging;
@@ -12,9 +10,10 @@ using Microsoft.Extensions.Options;
 
 namespace Asistente.Infrastructure.Services;
 
-/// Implementa la comunicación HTTP con el servicio local Ollama.
-
-public class OllamaService : IAsistenteIA
+/// <summary>
+/// Implementación del proveedor local de IA mediante Ollama.
+/// </summary>
+public class OllamaService : IAIProvider
 {
     private readonly HttpClient _httpClient;
     private readonly OllamaOptions _options;
@@ -30,17 +29,17 @@ public class OllamaService : IAsistenteIA
         _logger = logger;
     }
 
-    public async Task<RespuestaIA> GenerarRespuestaAsync(
-        IReadOnlyCollection<Mensaje> mensajes,
+    public async Task<ChatResponseDto> SendAsync(
+        ChatRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        var request = new OllamaChatRequest
+        var ollamaRequest = new OllamaChatRequest
         {
             Model = _options.Model,
             Stream = false,
             Think = false,
             KeepAlive = _options.KeepAlive,
-            Messages = mensajes.Select(mensaje => new OllamaChatMessage
+            Messages = request.Mensajes.Select(mensaje => new OllamaChatMessage
             {
                 Role = ConvertirRol(mensaje.Rol),
                 Content = mensaje.Contenido
@@ -53,7 +52,7 @@ public class OllamaService : IAsistenteIA
         {
             using var response = await _httpClient.PostAsJsonAsync(
                 "api/chat",
-                request,
+                ollamaRequest,
                 cancellationToken);
 
             cronometro.Stop();
@@ -88,11 +87,14 @@ public class OllamaService : IAsistenteIA
                     "Ollama no devolvió una respuesta válida.");
             }
 
-            return new RespuestaIA(
-                respuesta.Message.Content.Trim(),
-                (int)cronometro.ElapsedMilliseconds);
+            return new ChatResponseDto
+            {
+                Contenido = respuesta.Message.Content.Trim(),
+                TiempoRespuestaMs = (int)cronometro.ElapsedMilliseconds
+            };
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException)
+            when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogError(
                 "Ollama excedió el tiempo máximo de espera de {TimeoutSeconds} segundos.",
@@ -111,12 +113,12 @@ public class OllamaService : IAsistenteIA
         }
     }
 
-    private static string ConvertirRol(RolMensaje rol)
+    private static string ConvertirRol(string rol)
     {
-        return rol switch
+        return rol.ToLowerInvariant() switch
         {
-            RolMensaje.Usuario => "user",
-            RolMensaje.Asistente => "assistant",
+            "usuario" or "user" => "user",
+            "asistente" or "assistant" => "assistant",
             _ => throw new ArgumentOutOfRangeException(nameof(rol))
         };
     }

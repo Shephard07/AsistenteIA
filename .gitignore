@@ -9,3 +9,10 @@
 # Archivos generados al compilar
 **/bin/
 **/obj/
+
+# Registros generados por Serilog
+**/Logs/
+
+# Resultados y reportes de pruebas
+TestResults/
+TestCoverage/

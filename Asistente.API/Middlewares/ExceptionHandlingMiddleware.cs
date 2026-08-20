@@ -1,4 +1,5 @@
 ﻿using Asistente.Shared.Models;
+using FluentValidation;
 
 namespace Asistente.API.Middlewares;
 
@@ -20,6 +21,23 @@ public class ExceptionHandlingMiddleware
         try
         {
             await _next(context);
+        }
+        catch (ValidationException exception)
+        {
+            var errores = exception.Errors
+                .Select(error => error.ErrorMessage)
+                .Distinct()
+                .ToArray();
+
+            _logger.LogWarning(
+                "La solicitud no superó las validaciones: {Errores}",
+                string.Join(" | ", errores));
+
+            await EscribirErrorAsync(
+                context,
+                StatusCodes.Status400BadRequest,
+                "La solicitud contiene datos inválidos.",
+                errores);
         }
         catch (Exception exception)
         {
@@ -54,12 +72,26 @@ public class ExceptionHandlingMiddleware
                     "Ocurrió un error inesperado. Inténtalo nuevamente.")
             };
 
-            context.Response.StatusCode = statusCode;
-
-            await context.Response.WriteAsJsonAsync(new ErrorResponse
-            {
-                Mensaje = mensaje
-            });
+            await EscribirErrorAsync(
+                context,
+                statusCode,
+                mensaje,
+                Array.Empty<string>());
         }
+    }
+
+    private static Task EscribirErrorAsync(
+        HttpContext context,
+        int statusCode,
+        string mensaje,
+        IReadOnlyCollection<string> errores)
+    {
+        context.Response.StatusCode = statusCode;
+
+        return context.Response.WriteAsJsonAsync(new ErrorResponse
+        {
+            Mensaje = mensaje,
+            Errores = errores
+        });
     }
 }

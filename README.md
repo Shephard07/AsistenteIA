@@ -1,164 +1,131 @@
 # Asistente Inteligente Empresarial
 
-Aplicación web que permite mantener conversaciones con un asistente de inteligencia artificial ejecutado localmente mediante Ollama. El proyecto registra las conversaciones y mensajes en SQL Server y está desarrollado siguiendo principios de Clean Architecture.
+Aplicación web empresarial desarrollada en .NET 8 que permite mantener conversaciones con una inteligencia artificial local mediante Ollama. El proyecto aplica Clean Architecture, persistencia con SQL Server y Entity Framework Core, validaciones, documentación de API, registros estructurados y pruebas unitarias.
 
-## Tecnologías utilizadas
+## Características
 
-| Tecnología                        | Uso en el proyecto                          |
-| --------------------------------- | ------------------------------------------- |
-| ASP.NET Core 8                    | API REST y aplicación web MVC               |
-| C#                                | Lógica de la aplicación                     |
-| Entity Framework Core             | Acceso a datos y migraciones                |
-| SQL Server Express                | Almacenamiento de conversaciones y mensajes |
-| Ollama                            | Ejecución local del modelo de IA            |
-| DeepSeek-R1 7B                    | Modelo de lenguaje utilizado                |
-| HTML, CSS, Bootstrap y JavaScript | Interfaz de chat                            |
-| Git y GitHub                      | Control de versiones                        |
+- Chat web conectado a una API REST.
+- Integración local con Ollama y el modelo `deepseek-r1:7b`.
+- Persistencia de conversaciones y mensajes en SQL Server.
+- Arquitectura por capas con separación de responsabilidades.
+- DTOs para comunicación entre API y Application.
+- Validaciones mediante FluentValidation.
+- Manejo global de excepciones con respuestas JSON.
+- Registro de solicitudes, tiempos y errores mediante Serilog.
+- Documentación interactiva mediante Swagger/OpenAPI.
+- Pruebas unitarias con xUnit y Moq.
+- Cobertura de `Asistente.Application` superior al 70 %.
 
 ## Arquitectura
 
-La solución está organizada en seis proyectos para respetar Clean Architecture:
-
 ```text
-Asistente.Web            -> Interfaz MVC para el usuario
-Asistente.API            -> Endpoints HTTP y configuración de la API
-Asistente.Application    -> Casos de uso y servicios de aplicación
-Asistente.Domain         -> Entidades, reglas y contratos del dominio
-Asistente.Infrastructure -> EF Core, SQL Server y conexión con Ollama
-Asistente.Shared         -> Modelos compartidos de solicitud y respuesta
+Asistente.Web
+      │ HTTP / JSON
+      ▼
+Asistente.API
+      │ DTOs + servicios de Application
+      ▼
+Asistente.Application
+      │ interfaces
+      ▼
+Asistente.Domain
+      ▲
+      │ implementaciones
+Asistente.Infrastructure
+      │
+      ├── SQL Server / Entity Framework Core
+      └── Ollama
 ```
 
-Los controladores no contienen lógica de negocio. Su función es recibir la solicitud HTTP y delegarla a los servicios de la capa Application.
+## Proyectos
 
-## Funcionalidades
+| Proyecto | Responsabilidad |
+|---|---|
+| `Asistente.Web` | Interfaz web MVC del chat. |
+| `Asistente.API` | Endpoints REST, Swagger, CORS, middleware y Serilog. |
+| `Asistente.Application` | Casos de uso, DTOs, validadores e interfaces. |
+| `Asistente.Domain` | Entidades, reglas de dominio, enums y contratos de repositorio. |
+| `Asistente.Infrastructure` | EF Core, SQL Server, repositorios y proveedor Ollama. |
+| `Asistente.Shared` | Modelos compartidos de errores. |
+| `Asistente.Tests` | Pruebas unitarias con xUnit y Moq. |
 
-* Envío de mensajes a un asistente IA local.
-* Registro de conversaciones y mensajes en SQL Server.
-* Visualización del historial durante la conversación.
-* Medición del tiempo de respuesta de la IA.
-* Limpieza de conversación desde la interfaz web.
-* Manejo centralizado de errores.
-* Configuración del modelo Ollama desde `appsettings.json`.
-* Uso de CORS para permitir la comunicación entre la Web MVC y la API.
+## Tecnologías
+
+- .NET 8 y C#
+- ASP.NET Core MVC y Web API
+- SQL Server Express
+- Entity Framework Core
+- Ollama con `deepseek-r1:7b`
+- FluentValidation
+- Serilog
+- Swagger / OpenAPI
+- xUnit, Moq y Coverlet
 
 ## Requisitos previos
 
-Antes de ejecutar el proyecto se debe tener instalado:
-
-* Visual Studio 2022 con desarrollo de ASP.NET y web.
-* .NET 8 SDK.
-* SQL Server Express o SQL Server 2022.
-* SQL Server Management Studio (opcional, para revisar la base de datos).
-* Ollama.
-* Git.
-
-## Configuración de Ollama
-
-Instalar Ollama desde:
-
-```text
-https://ollama.com/
-```
-
-Luego, en PowerShell, descargar el modelo:
+- Visual Studio 2022 con desarrollo de ASP.NET y .NET 8.
+- SQL Server Express.
+- Ollama instalado.
+- Modelo local descargado:
 
 ```powershell
 ollama pull deepseek-r1:7b
 ```
 
-Verificar los modelos disponibles:
+## Configuración
+
+La cadena de conexión, configuración de Ollama, CORS y Serilog se encuentran en:
+
+```text
+Asistente.API/appsettings.json
+```
+
+La aplicación posee configuración por ambiente:
+
+```text
+appsettings.Development.json
+appsettings.Testing.json
+appsettings.Production.json
+```
+
+El archivo de producción usa valores de ejemplo que deben reemplazarse antes de publicar el sistema.
+
+## Ejecución local
+
+1. Verificar que Ollama tenga el modelo instalado:
 
 ```powershell
 ollama list
 ```
 
-Si el servicio de Ollama no está iniciado, ejecutar:
+2. Si Ollama no está iniciado, ejecutar:
 
 ```powershell
 ollama serve
 ```
 
-Para liberar la memoria utilizada por el modelo después de una prueba:
-
-```powershell
-ollama stop deepseek-r1:7b
-```
-
-## Configuración de base de datos
-
-La aplicación utiliza SQL Server Express en la instancia:
+3. En Visual Studio, iniciar simultáneamente:
 
 ```text
-localhost\SQLEXPRESS
+Asistente.API
+Asistente.Web
 ```
 
-La cadena de conexión se encuentra en `Asistente.API/appsettings.json`:
-
-```json
-"ConnectionStrings": {
-  "AsistenteIA": "Server=localhost\\SQLEXPRESS;Database=AsistenteIA;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
-}
-```
-
-La base de datos se denomina:
-
-```text
-AsistenteIA
-```
-
-Para crearla mediante las migraciones de Entity Framework Core, abrir la Consola del Administrador de paquetes de Visual Studio y ejecutar:
-
-```powershell
-Update-Database -Project Asistente.Infrastructure -StartupProject Asistente.API
-```
-
-## Configuración de la IA
-
-La configuración de Ollama está en `Asistente.API/appsettings.json`:
-
-```json
-"Ollama": {
-  "BaseUrl": "http://localhost:11434",
-  "Model": "deepseek-r1:7b",
-  "TimeoutSeconds": 120,
-  "KeepAlive": "0"
-}
-```
-
-Para usar otro modelo, se modifica únicamente el valor de `Model` y se reinicia la API. No es necesario recompilar el código.
-
-## Ejecución del proyecto
-
-1. Verificar que SQL Server esté disponible.
-2. Verificar que Ollama esté instalado y que el modelo exista con:
-
-```powershell
-ollama list
-```
-
-3. Ejecutar primero el proyecto `Asistente.API`.
-
-La API se ejecuta normalmente en:
-
-```text
-http://localhost:5148
-```
-
-4. Ejecutar después el proyecto `Asistente.Web` usando el perfil HTTP.
-
-La Web se ejecuta normalmente en:
+4. Abrir la aplicación web:
 
 ```text
 http://localhost:5201
 ```
 
-5. Abrir la URL de la Web en el navegador y enviar un mensaje.
+5. Consultar Swagger:
 
-> Si los puertos cambian en tu equipo, actualizar `Api:BaseUrl` en `Asistente.Web/appsettings.json` y los orígenes permitidos en la configuración CORS de la API.
+```text
+http://localhost:5148/swagger
+```
 
 ## Endpoint principal
 
-```text
+```http
 POST /api/conversaciones/mensajes
 ```
 
@@ -167,7 +134,7 @@ Ejemplo de solicitud:
 ```json
 {
   "idConversacion": null,
-  "mensaje": "Hola, ¿cómo puedes ayudarme?"
+  "mensaje": "Hola, ¿cómo puede ayudarme el asistente?"
 }
 ```
 
@@ -176,52 +143,55 @@ Ejemplo de respuesta:
 ```json
 {
   "idConversacion": 1,
-  "respuesta": "Hola, soy tu asistente inteligente empresarial.",
-  "tiempoRespuestaMs": 21000
+  "respuesta": "Respuesta generada por el asistente.",
+  "tiempoRespuestaMs": 1200
 }
 ```
 
-Prueba desde PowerShell:
+## Validaciones y errores
 
-```powershell
-$body = @{
-    mensaje = "Prueba de conexión con Ollama."
-} | ConvertTo-Json
+- El mensaje es obligatorio.
+- El mensaje admite como máximo 2000 caracteres.
+- Si se envía un identificador de conversación, debe ser mayor que cero.
+- Los errores se devuelven en formato JSON sin detalles técnicos expuestos al cliente.
+- Los errores de Ollama, tiempos de espera y excepciones se registran en Serilog.
 
-Invoke-RestMethod `
-  -Uri "http://localhost:5148/api/conversaciones/mensajes" `
-  -Method Post `
-  -ContentType "application/json" `
-  -Body $body
+## Registros
+
+Los registros diarios se generan en:
+
+```text
+Asistente.API/Logs/log-AAAA-MM-DD.txt
 ```
 
-## Base de datos
+No se versionan en Git.
 
-La solución maneja las siguientes tablas:
+## Pruebas y cobertura
 
-| Tabla                   | Descripción                                                                             |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| `Conversacion`          | Almacena el estado y fechas de cada conversación.                                       |
-| `Mensaje`               | Almacena cada mensaje del usuario y de la IA, junto con el tiempo de respuesta.         |
-| `__EFMigrationsHistory` | Tabla interna utilizada por Entity Framework Core para controlar migraciones aplicadas. |
+Ejecutar pruebas:
+
+```powershell
+dotnet test
+```
+
+Generar cobertura:
+
+```powershell
+dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults
+reportgenerator -reports:"TestResults\**\coverage.cobertura.xml" -targetdir:"TestCoverage" -reporttypes:"Html"
+start TestCoverage\index.html
+```
+
+Resultado actual:
+
+```text
+13 pruebas aprobadas
+88.2 % de cobertura de líneas en Asistente.Application
+```
 
 ## Control de versiones
 
-El repositorio utiliza Git para registrar los cambios del proyecto.
-
-```text
-Repositorio: https://github.com/Shephard07/AsistenteIA
-```
-
-Comandos básicos utilizados:
-
-```powershell
-git status
-git add .
-git commit -m "Descripción del cambio"
-git push
-```
-
-## Autoría
-
-Proyecto académico individual: Asistente Inteligente Empresarial.
+- Repositorio: https://github.com/Shephard07/AsistenteIA
+- Rama de Etapa 1: `main`
+- Rama de desarrollo de Etapa 2: `etapa2-arquitectura`
+- Etiqueta de respaldo de Etapa 1: `etapa1-final`

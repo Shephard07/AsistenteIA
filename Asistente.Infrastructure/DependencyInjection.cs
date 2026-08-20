@@ -1,4 +1,5 @@
-﻿using Asistente.Domain.Interfaces;
+﻿using Asistente.Application.Interfaces;
+using Asistente.Domain.Interfaces;
 using Asistente.Infrastructure.Options;
 using Asistente.Infrastructure.Persistence;
 using Asistente.Infrastructure.Repositories;
@@ -29,7 +30,7 @@ public static class DependencyInjection
 
         services.AddScoped<IConversacionRepository, ConversacionRepository>();
 
-        services.AddHttpClient<IAsistenteIA, OllamaService>(
+        services.AddHttpClient<IAIProvider, OllamaService>(
             (serviceProvider, httpClient) =>
             {
                 var ollamaOptions = serviceProvider
