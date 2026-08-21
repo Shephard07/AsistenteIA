@@ -1,6 +1,24 @@
 ﻿@{
     Layout = null;
     ViewData["Title"] = "Acceso denegado";
+
+    var controladorDestino =
+        User.IsInRole("Supervisor") ? "Auditoria" :
+        User.IsInRole("Administrador") || User.IsInRole("Operador")
+            ? "Chat"
+            : "Cuenta";
+
+    var accionDestino =
+        controladorDestino == "Cuenta"
+            ? "IniciarSesion"
+            : "Index";
+
+    var textoDestino =
+        controladorDestino == "Auditoria"
+            ? "Ir a Auditoría"
+            : controladorDestino == "Chat"
+                ? "Ir al asistente"
+                : "Iniciar sesión";
 }
 
 <!DOCTYPE html>
@@ -19,10 +37,10 @@
                 <p class="text-muted">
                     No tienes permisos para acceder a esta opción.
                 </p>
-                <a asp-controller="Chat"
-                   asp-action="Index"
+                <a asp-controller="@controladorDestino"
+                   asp-action="@accionDestino"
                    class="btn btn-primary">
-                    Volver al inicio
+                    @textoDestino
                 </a>
             </div>
         </div>

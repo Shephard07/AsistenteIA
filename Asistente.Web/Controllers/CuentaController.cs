@@ -24,7 +24,7 @@ public class CuentaController : Controller
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return RedirectToAction("Index", "Chat");
+            return RedirigirUsuarioAutenticado();
         }
 
         return View(new LoginViewModel
@@ -92,6 +92,16 @@ public class CuentaController : Controller
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(identidad));
 
+        var esSoloSupervisor =
+            respuesta.Roles.Contains("Supervisor") &&
+            !respuesta.Roles.Contains("Administrador") &&
+            !respuesta.Roles.Contains("Operador");
+
+        if (esSoloSupervisor)
+        {
+            return RedirectToAction("Index", "Auditoria");
+        }
+
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) &&
             Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -122,5 +132,21 @@ public class CuentaController : Controller
     public IActionResult AccesoDenegado()
     {
         return View();
+    }
+
+    private IActionResult RedirigirUsuarioAutenticado()
+    {
+        if (User.IsInRole("Administrador") ||
+            User.IsInRole("Operador"))
+        {
+            return RedirectToAction("Index", "Chat");
+        }
+
+        if (User.IsInRole("Supervisor"))
+        {
+            return RedirectToAction("Index", "Auditoria");
+        }
+
+        return RedirectToAction(nameof(AccesoDenegado));
     }
 }
