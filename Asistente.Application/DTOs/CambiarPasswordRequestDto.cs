@@ -1,0 +1,12 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Asistente.Application.DTOs;
+
+public class CambiarPasswordRequestDto
+{
+    public string NuevaPassword { get; set; } = string.Empty;
+}

@@ -1,8 +1,10 @@
 ﻿using Asistente.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Asistente.Web.Controllers;
 
+[Authorize(Roles = "Administrador,Operador")]
 public class ChatController : Controller
 {
     private readonly IConfiguration _configuration;

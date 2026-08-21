@@ -1,49 +1,118 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Asistente.Web</title>
+    <title>@ViewData["Title"] - AsistenteIA</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/Asistente.Web.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Asistente.Web.styles.css"
+          asp-append-version="true" />
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Asistente.Web</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <a class="navbar-brand fw-semibold"
+                   asp-controller="Chat"
+                   asp-action="Index">
+                    AsistenteIA
+                </a>
+
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#menuPrincipal"
+                        aria-controls="menuPrincipal"
+                        aria-expanded="false"
+                        aria-label="Mostrar navegación">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+
+                <div id="menuPrincipal"
+                     class="collapse navbar-collapse">
+                    <ul class="navbar-nav me-auto">
+                        @if (User.IsInRole("Administrador") ||
+                             User.IsInRole("Operador"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   asp-controller="Chat"
+                                   asp-action="Index">
+                                    Asistente
+                                </a>
+                            </li>
+                        }
+
+                        @if (User.IsInRole("Administrador"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   asp-controller="Usuarios"
+                                   asp-action="Index">
+                                    Usuarios
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   asp-controller="Roles"
+                                   asp-action="Index">
+                                    Roles
+                                </a>
+                            </li>
+                        }
+
+                        @if (User.IsInRole("Administrador") ||
+                             User.IsInRole("Supervisor"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   asp-controller="Auditoria"
+                                   asp-action="Index">
+                                    Auditoría
+                                </a>
+                            </li>
+                        }
                     </ul>
+
+                    <div class="d-flex align-items-lg-center gap-2 text-white">
+                        <span class="small">
+                            @(User.FindFirst("NombreCompleto")?.Value
+                                ?? User.Identity?.Name)
+                        </span>
+
+                        <form asp-controller="Cuenta"
+                              asp-action="CerrarSesion"
+                              method="post">
+                            <button type="submit"
+                                    class="btn btn-outline-light btn-sm">
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+
+    <div class="container py-4">
+        <main role="main">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <footer class="border-top py-3 text-muted">
         <div class="container">
-            &copy; 2026 - Asistente.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            © 2026 - Asistente Inteligente Empresarial
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

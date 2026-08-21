@@ -1,0 +1,83 @@
+﻿@model Asistente.Web.Models.AdministracionViewModel
+
+@{
+    ViewData["Title"] = "Auditoría";
+}
+
+<div data-api-base-url="@Model.ApiBaseUrl" id="auditoriaPage">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Auditoría del sistema</h1>
+            <p class="text-muted mb-0">
+                Consulta las sesiones y actividades registradas.
+            </p>
+        </div>
+
+        <button id="actualizarAuditoria"
+                type="button"
+                class="btn btn-outline-primary">
+            Actualizar
+        </button>
+    </div>
+
+    <div id="mensajeAuditoria" class="alert d-none" role="alert"></div>
+
+    <section class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Sesiones</h2>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Inicio</th>
+                            <th>Fin</th>
+                            <th>IP</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sesionesBody">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                Cargando sesiones...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Actividades</h2>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Módulo</th>
+                            <th>Acción</th>
+                            <th>Descripción</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="actividadesBody">
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">
+                                Cargando actividades...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/auditoria.js" asp-append-version="true"></script>
+}

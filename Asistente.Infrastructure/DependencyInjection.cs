@@ -28,7 +28,18 @@ public static class DependencyInjection
         services.Configure<OllamaOptions>(
             configuration.GetSection(OllamaOptions.SectionName));
 
+        services.Configure<UsuarioInicialOptions>(
+            configuration.GetSection(UsuarioInicialOptions.SectionName));
+
+        services.AddScoped<InicializadorSeguridad>();
+
         services.AddScoped<IConversacionRepository, ConversacionRepository>();
+
+        services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<IRolRepository, RolRepository>();
+        services.AddScoped<IAuditoriaRepository, AuditoriaRepository>();
+
+        services.AddScoped<IPasswordService, PasswordService>();
 
         services.AddHttpClient<IAIProvider, OllamaService>(
             (serviceProvider, httpClient) =>

@@ -2,6 +2,7 @@
 using Asistente.Application.Interfaces;
 using Asistente.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Asistente.API.Controllers;
 
@@ -11,6 +12,7 @@ namespace Asistente.API.Controllers;
 [ApiController]
 [Route("api/conversaciones")]
 [Produces("application/json")]
+[Authorize(Roles = "Administrador,Operador")]
 public class ConversacionesController : ControllerBase
 {
     private readonly IEnviarMensajeService _enviarMensajeService;

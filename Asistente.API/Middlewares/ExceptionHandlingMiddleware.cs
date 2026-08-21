@@ -47,6 +47,10 @@ public class ExceptionHandlingMiddleware
 
             var (statusCode, mensaje) = exception switch
             {
+                UnauthorizedAccessException => (
+                    StatusCodes.Status401Unauthorized,
+                    "Usuario o contraseña incorrectos."),
+
                 ArgumentException => (
                     StatusCodes.Status400BadRequest,
                     exception.Message),

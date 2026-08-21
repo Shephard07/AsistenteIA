@@ -22,6 +22,86 @@ namespace Asistente.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Asistente.Domain.Entities.AuditoriaActividad", b =>
+                {
+                    b.Property<int>("IdActividad")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdActividad"));
+
+                    b.Property<string>("Accion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("DireccionIP")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("FechaHora")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("IdUsuario")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Modulo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("IdActividad");
+
+                    b.HasIndex("IdUsuario");
+
+                    b.ToTable("AuditoriaActividad", (string)null);
+                });
+
+            modelBuilder.Entity("Asistente.Domain.Entities.AuditoriaSesion", b =>
+                {
+                    b.Property<int>("IdSesion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdSesion"));
+
+                    b.Property<string>("DireccionIP")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("FechaFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Navegador")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("IdSesion");
+
+                    b.HasIndex("IdUsuario");
+
+                    b.ToTable("AuditoriaSesion", (string)null);
+                });
+
             modelBuilder.Entity("Asistente.Domain.Entities.Conversacion", b =>
                 {
                     b.Property<int>("IdConversacion")
@@ -79,6 +159,125 @@ namespace Asistente.Infrastructure.Persistence.Migrations
                     b.ToTable("Mensaje", (string)null);
                 });
 
+            modelBuilder.Entity("Asistente.Domain.Entities.Rol", b =>
+                {
+                    b.Property<int>("IdRol")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdRol"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("IdRol");
+
+                    b.HasIndex("Nombre")
+                        .IsUnique();
+
+                    b.ToTable("Rol", (string)null);
+                });
+
+            modelBuilder.Entity("Asistente.Domain.Entities.Usuario", b =>
+                {
+                    b.Property<int>("IdUsuario")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdUsuario"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Apellidos")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Correo")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaUltimoAcceso")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NombreUsuario")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("Usuario");
+
+                    b.Property<string>("Nombres")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("IdUsuario");
+
+                    b.HasIndex("Correo")
+                        .IsUnique();
+
+                    b.HasIndex("NombreUsuario")
+                        .IsUnique();
+
+                    b.ToTable("Usuario", (string)null);
+                });
+
+            modelBuilder.Entity("Asistente.Domain.Entities.UsuarioRol", b =>
+                {
+                    b.Property<int>("IdUsuario")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IdRol")
+                        .HasColumnType("int");
+
+                    b.HasKey("IdUsuario", "IdRol");
+
+                    b.HasIndex("IdRol");
+
+                    b.ToTable("UsuarioRol", (string)null);
+                });
+
+            modelBuilder.Entity("Asistente.Domain.Entities.AuditoriaActividad", b =>
+                {
+                    b.HasOne("Asistente.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("Actividades")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("Asistente.Domain.Entities.AuditoriaSesion", b =>
+                {
+                    b.HasOne("Asistente.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("Sesiones")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("Asistente.Domain.Entities.Mensaje", b =>
                 {
                     b.HasOne("Asistente.Domain.Entities.Conversacion", "Conversacion")
@@ -90,9 +289,42 @@ namespace Asistente.Infrastructure.Persistence.Migrations
                     b.Navigation("Conversacion");
                 });
 
+            modelBuilder.Entity("Asistente.Domain.Entities.UsuarioRol", b =>
+                {
+                    b.HasOne("Asistente.Domain.Entities.Rol", "Rol")
+                        .WithMany("UsuarioRoles")
+                        .HasForeignKey("IdRol")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Asistente.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("UsuarioRoles")
+                        .HasForeignKey("IdUsuario")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Rol");
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("Asistente.Domain.Entities.Conversacion", b =>
                 {
                     b.Navigation("Mensajes");
+                });
+
+            modelBuilder.Entity("Asistente.Domain.Entities.Rol", b =>
+                {
+                    b.Navigation("UsuarioRoles");
+                });
+
+            modelBuilder.Entity("Asistente.Domain.Entities.Usuario", b =>
+                {
+                    b.Navigation("Actividades");
+
+                    b.Navigation("Sesiones");
+
+                    b.Navigation("UsuarioRoles");
                 });
 #pragma warning restore 612, 618
         }

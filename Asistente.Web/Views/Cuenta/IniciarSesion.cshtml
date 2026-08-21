@@ -1,0 +1,77 @@
+﻿@model Asistente.Web.Models.LoginViewModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Iniciar sesión";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - AsistenteIA</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body class="bg-light">
+    <main class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-md-7 col-lg-5">
+                <section class="card shadow-sm border-0">
+                    <div class="card-body p-4 p-md-5">
+                        <p class="text-uppercase fw-bold text-primary small mb-2">
+                            IA local · Ollama
+                        </p>
+
+                        <h1 class="h3 mb-2">
+                            Asistente Inteligente Empresarial
+                        </h1>
+
+                        <p class="text-muted mb-4">
+                            Inicia sesión para acceder al sistema.
+                        </p>
+
+                        <form asp-action="IniciarSesion" method="post">
+                            <input asp-for="ReturnUrl" type="hidden" />
+
+                            <div asp-validation-summary="ModelOnly"
+                                 class="text-danger mb-3"></div>
+
+                            <div class="mb-3">
+                                <label asp-for="Usuario"
+                                       class="form-label"></label>
+
+                                <input asp-for="Usuario"
+                                       class="form-control"
+                                       autocomplete="username" />
+
+                                <span asp-validation-for="Usuario"
+                                      class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Password"
+                                       class="form-label"></label>
+
+                                <input asp-for="Password"
+                                       class="form-control"
+                                       autocomplete="current-password" />
+
+                                <span asp-validation-for="Password"
+                                      class="text-danger small"></span>
+                            </div>
+
+                            <button class="btn btn-primary w-100"
+                                    type="submit">
+                                Iniciar sesión
+                            </button>
+                        </form>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <partial name="_ValidationScriptsPartial" />
+</body>
+</html>
