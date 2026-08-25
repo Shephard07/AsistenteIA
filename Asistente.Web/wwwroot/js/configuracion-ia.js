@@ -5,8 +5,22 @@ const apiBaseUrlConfiguracionIA =
 const mensajeConfiguracionIA = document.getElementById(
     "mensajeConfiguracionIA");
 
+const selectorAsistente = document.getElementById("selectorAsistente");
+const btnNuevoAsistente = document.getElementById("btnNuevoAsistente");
+const btnCambiarEstadoAsistente = document.getElementById(
+    "btnCambiarEstadoAsistente");
+
+const estadoAsistenteSeleccionado = document.getElementById(
+    "estadoAsistenteSeleccionado");
+
 const formConfiguracionAsistente = document.getElementById(
     "formConfiguracionAsistente");
+
+const btnGuardarAsistente = document.getElementById(
+    "btnGuardarAsistente");
+
+const tituloFormularioAsistente = document.getElementById(
+    "tituloFormularioAsistente");
 
 const formNuevaVersionPrompt = document.getElementById(
     "formNuevaVersionPrompt");
@@ -14,14 +28,27 @@ const formNuevaVersionPrompt = document.getElementById(
 const formProbarPrompt = document.getElementById(
     "formProbarPrompt");
 
+const selectorPromptPrueba = document.getElementById(
+    "selectorPromptPrueba");
+
+const btnCambiarEstadoPrompt = document.getElementById(
+    "btnCambiarEstadoPrompt");
+
+const estadoPromptSeleccionado = document.getElementById(
+    "estadoPromptSeleccionado");
+
 const historialPromptBody = document.getElementById(
     "historialPromptBody");
 
 const resultadoPruebaPrompt = document.getElementById(
     "resultadoPruebaPrompt");
 
-let asistenteActivo = null;
+let asistentes = [];
+let prompts = [];
+let asistenteSeleccionado = null;
 let promptActivo = null;
+let promptSeleccionadoParaPrueba = null;
+let modoCreacionAsistente = false;
 
 function mostrarMensajeConfiguracionIA(mensaje, esError = false) {
     mensajeConfiguracionIA.textContent = mensaje;
@@ -76,11 +103,35 @@ function escaparHtml(valor) {
 }
 
 function formatearFecha(fecha) {
-    if (!fecha) {
-        return "-";
-    }
+    return fecha
+        ? new Date(fecha).toLocaleString("es-PE")
+        : "-";
+}
 
-    return new Date(fecha).toLocaleString("es-PE");
+function obtenerConfiguracionFormulario() {
+    return {
+        nombre: document.getElementById("nombreAsistente").value.trim(),
+        descripcion: document.getElementById(
+            "descripcionAsistente").value.trim(),
+        modeloIA: document.getElementById("modeloIA").value.trim(),
+        idioma: document.getElementById("idiomaAsistente").value.trim(),
+        longitudRespuesta: document.getElementById(
+            "longitudRespuesta").value.trim(),
+        formalidad: document.getElementById(
+            "formalidadAsistente").value.trim(),
+        formatoRespuesta: document.getElementById(
+            "formatoRespuesta").value.trim(),
+        restricciones: document.getElementById(
+            "restriccionesAsistente").value.trim(),
+        mensajeBienvenida: document.getElementById(
+            "mensajeBienvenida").value.trim(),
+        temperatura: Number(document.getElementById(
+            "temperaturaAsistente").value),
+        maxTokens: Number(document.getElementById(
+            "maxTokensAsistente").value),
+        timeoutSeconds: Number(document.getElementById(
+            "timeoutAsistente").value)
+    };
 }
 
 function llenarFormularioAsistente(asistente) {
@@ -108,11 +159,137 @@ function llenarFormularioAsistente(asistente) {
         asistente.timeoutSeconds;
 }
 
-function llenarDatosPromptActivo(prompt) {
-    document.getElementById("idPromptActivo").value = prompt.idPrompt;
-    document.getElementById("contenidoPrompt").value = prompt.contenido;
+function prepararNuevoAsistente() {
+    modoCreacionAsistente = true;
+    asistenteSeleccionado = null;
+    promptActivo = null;
+    prompts = [];
+
+    document.getElementById("formConfiguracionAsistente").reset();
+    document.getElementById("idAsistente").value = "";
+    document.getElementById("modeloIA").value = "deepseek-r1:7b";
+    document.getElementById("idiomaAsistente").value = "Español";
+    document.getElementById("longitudRespuesta").value = "Breve y clara";
+    document.getElementById("formalidadAsistente").value = "Profesional";
+    document.getElementById("temperaturaAsistente").value = "0.4";
+    document.getElementById("maxTokensAsistente").value = "1024";
+    document.getElementById("timeoutAsistente").value = "180";
+
+    tituloFormularioAsistente.textContent = "Nuevo asistente";
+    btnGuardarAsistente.textContent = "Crear asistente";
+
+    btnCambiarEstadoAsistente.disabled = true;
+    btnCambiarEstadoAsistente.textContent = "Sin asistente";
+
+    estadoAsistenteSeleccionado.textContent =
+        "Completa los datos y guarda para crear el asistente.";
+
+    document.getElementById("idPromptActivo").value = "";
+    document.getElementById("nombrePrompt").value = "";
+    document.getElementById("contenidoPrompt").value = "";
+    document.getElementById("motivoCambioPrompt").value = "";
+
+    selectorPromptPrueba.innerHTML =
+        "<option>No hay prompts disponibles.</option>";
+
+    btnCambiarEstadoPrompt.disabled = true;
+    btnCambiarEstadoPrompt.textContent = "Sin prompt";
+    estadoPromptSeleccionado.textContent = "";
+
+    historialPromptBody.innerHTML = `
+        <tr>
+            <td colspan="5" class="text-center text-muted">
+                Guarda el asistente para administrar sus prompts.
+            </td>
+        </tr>`;
+
+    resultadoPruebaPrompt.classList.add("d-none");
+}
+
+function actualizarEstadoVisualAsistente() {
+    if (!asistenteSeleccionado) {
+        return;
+    }
+
+    const activo = asistenteSeleccionado.activo;
+
+    btnCambiarEstadoAsistente.disabled = false;
+    btnCambiarEstadoAsistente.textContent = activo
+        ? "Desactivar asistente"
+        : "Activar asistente";
+
+    btnCambiarEstadoAsistente.className = activo
+        ? "btn btn-outline-danger w-100"
+        : "btn btn-outline-success w-100";
+
+    estadoAsistenteSeleccionado.textContent = activo
+        ? "Estado actual: Activo. Este asistente puede utilizarse en el chat."
+        : "Estado actual: Inactivo.";
+}
+
+function llenarSelectorAsistentes() {
+    selectorAsistente.innerHTML = asistentes.map(asistente => `
+        <option value="${asistente.idAsistente}">
+            ${escaparHtml(asistente.nombre)}
+            ${asistente.activo ? " - Activo" : " - Inactivo"}
+        </option>`).join("");
+}
+
+function llenarDatosPromptActivo() {
+    if (!promptActivo) {
+        document.getElementById("idPromptActivo").value = "";
+        document.getElementById("nombrePrompt").value = "";
+        document.getElementById("contenidoPrompt").value = "";
+        return;
+    }
+
+    document.getElementById("idPromptActivo").value = promptActivo.idPrompt;
+    document.getElementById("contenidoPrompt").value = promptActivo.contenido;
     document.getElementById("nombrePrompt").value =
-        `${prompt.nombre} - versión ${prompt.version + 1}`;
+        `${promptActivo.nombre} - versión ${promptActivo.version + 1}`;
+}
+
+function actualizarEstadoVisualPrompt() {
+    if (!promptSeleccionadoParaPrueba) {
+        btnCambiarEstadoPrompt.disabled = true;
+        btnCambiarEstadoPrompt.textContent = "Sin prompt";
+        estadoPromptSeleccionado.textContent = "";
+        return;
+    }
+
+    const activo = promptSeleccionadoParaPrueba.activo;
+
+    btnCambiarEstadoPrompt.disabled = false;
+    btnCambiarEstadoPrompt.textContent = activo
+        ? "Desactivar prompt"
+        : "Activar prompt";
+
+    btnCambiarEstadoPrompt.className = activo
+        ? "btn btn-outline-danger w-100"
+        : "btn btn-outline-success w-100";
+
+    estadoPromptSeleccionado.textContent = activo
+        ? "Prompt seleccionado: Activo"
+        : "Prompt seleccionado: Inactivo";
+}
+
+function llenarSelectorPrompts() {
+    selectorPromptPrueba.innerHTML = prompts.length === 0
+        ? "<option value=''>No hay prompts disponibles.</option>"
+        : prompts.map(prompt => `
+            <option value="${prompt.idPrompt}">
+                Versión ${prompt.version} - ${escaparHtml(prompt.nombre)}
+                ${prompt.activo ? " - Activa" : " - Inactiva"}
+            </option>`).join("");
+
+    if (promptActivo) {
+        selectorPromptPrueba.value = promptActivo.idPrompt;
+        promptSeleccionadoParaPrueba = promptActivo;
+    } else {
+        promptSeleccionadoParaPrueba = null;
+    }
+
+    actualizarEstadoVisualPrompt();
 }
 
 function crearFilaHistorial(item) {
@@ -134,112 +311,157 @@ function crearFilaHistorial(item) {
 }
 
 async function cargarHistorialPrompt() {
-    try {
-        const historial = await solicitarConfiguracionIA(
-            `/api/asistentes/${asistenteActivo.idAsistente}/prompts/historial`);
-
-        historialPromptBody.innerHTML = historial.length === 0
-            ? `<tr>
-                   <td colspan="5" class="text-center text-muted">
-                       No hay versiones registradas.
-                   </td>
-               </tr>`
-            : historial.map(crearFilaHistorial).join("");
-    } catch (error) {
-        historialPromptBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center text-danger">
-                    ${escaparHtml(error.message)}
-                </td>
-            </tr>`;
-    }
-}
-
-async function cargarPromptActivo() {
-    const prompts = await solicitarConfiguracionIA(
-        `/api/asistentes/${asistenteActivo.idAsistente}/prompts`);
-
-    promptActivo = prompts.find(prompt => prompt.activo) ?? null;
-
-    if (!promptActivo) {
-        document.getElementById("idPromptActivo").value = "";
-        document.getElementById("contenidoPrompt").value = "";
-        mostrarMensajeConfiguracionIA(
-            "El asistente activo no tiene un prompt activo.",
-            true);
-
+    if (!asistenteSeleccionado) {
         return;
     }
 
-    llenarDatosPromptActivo(promptActivo);
+    const historial = await solicitarConfiguracionIA(
+        `/api/asistentes/${asistenteSeleccionado.idAsistente}/prompts/historial`);
+
+    historialPromptBody.innerHTML = historial.length === 0
+        ? `<tr>
+               <td colspan="5" class="text-center text-muted">
+                   No hay versiones registradas.
+               </td>
+           </tr>`
+        : historial.map(crearFilaHistorial).join("");
 }
 
-async function cargarConfiguracionIA() {
+async function cargarPrompts() {
+    prompts = await solicitarConfiguracionIA(
+        `/api/asistentes/${asistenteSeleccionado.idAsistente}/prompts`);
+
+    promptActivo = prompts.find(prompt => prompt.activo) ?? null;
+
+    llenarDatosPromptActivo();
+    llenarSelectorPrompts();
+
+    if (!promptActivo) {
+        mostrarMensajeConfiguracionIA(
+            "El asistente seleccionado no tiene un prompt activo. Puedes crear el prompt inicial.",
+            true);
+    }
+}
+
+async function seleccionarAsistente(idAsistente) {
+    asistenteSeleccionado = asistentes.find(
+        asistente => asistente.idAsistente === idAsistente) ?? null;
+
+    if (!asistenteSeleccionado) {
+        return;
+    }
+
+    modoCreacionAsistente = false;
+    tituloFormularioAsistente.textContent =
+        "Configuración del asistente";
+    btnGuardarAsistente.textContent = "Guardar configuración";
+
+    selectorAsistente.value = asistenteSeleccionado.idAsistente;
+    llenarFormularioAsistente(asistenteSeleccionado);
+    actualizarEstadoVisualAsistente();
+
+    await cargarPrompts();
+    await cargarHistorialPrompt();
+
+    resultadoPruebaPrompt.classList.add("d-none");
+}
+
+async function cargarConfiguracionIA(idPreferido = null) {
     ocultarMensajeConfiguracionIA();
 
     try {
-        const asistentes = await solicitarConfiguracionIA("/api/asistentes");
+        asistentes = await solicitarConfiguracionIA("/api/asistentes");
 
-        asistenteActivo = asistentes.find(asistente => asistente.activo) ?? null;
-
-        if (!asistenteActivo) {
-            throw new Error(
-                "No existe un asistente activo. Créalo primero desde la API.");
+        if (asistentes.length === 0) {
+            prepararNuevoAsistente();
+            return;
         }
 
-        llenarFormularioAsistente(asistenteActivo);
+        llenarSelectorAsistentes();
 
-        await cargarPromptActivo();
-        await cargarHistorialPrompt();
+        const idSeleccionado = idPreferido
+            ?? asistenteSeleccionado?.idAsistente
+            ?? asistentes.find(asistente => asistente.activo)?.idAsistente
+            ?? asistentes[0].idAsistente;
+
+        await seleccionarAsistente(Number(idSeleccionado));
     } catch (error) {
         mostrarMensajeConfiguracionIA(error.message, true);
-
-        historialPromptBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center text-danger">
-                    ${escaparHtml(error.message)}
-                </td>
-            </tr>`;
     }
 }
+
+selectorAsistente.addEventListener("change", async event => {
+    try {
+        await seleccionarAsistente(Number(event.target.value));
+    } catch (error) {
+        mostrarMensajeConfiguracionIA(error.message, true);
+    }
+});
+
+btnNuevoAsistente.addEventListener("click", () => {
+    ocultarMensajeConfiguracionIA();
+    prepararNuevoAsistente();
+});
 
 formConfiguracionAsistente.addEventListener("submit", async event => {
     event.preventDefault();
 
     try {
-        const idAsistente = document.getElementById("idAsistente").value;
+        const configuracion = obtenerConfiguracionFormulario();
 
-        await solicitarConfiguracionIA(`/api/asistentes/${idAsistente}`, {
-            method: "PUT",
-            body: JSON.stringify({
-                nombre: document.getElementById("nombreAsistente").value,
-                descripcion: document.getElementById(
-                    "descripcionAsistente").value,
-                modeloIA: document.getElementById("modeloIA").value,
-                idioma: document.getElementById("idiomaAsistente").value,
-                longitudRespuesta: document.getElementById(
-                    "longitudRespuesta").value,
-                formalidad: document.getElementById(
-                    "formalidadAsistente").value,
-                formatoRespuesta: document.getElementById(
-                    "formatoRespuesta").value,
-                restricciones: document.getElementById(
-                    "restriccionesAsistente").value,
-                mensajeBienvenida: document.getElementById(
-                    "mensajeBienvenida").value,
-                temperatura: Number(document.getElementById(
-                    "temperaturaAsistente").value),
-                maxTokens: Number(document.getElementById(
-                    "maxTokensAsistente").value),
-                timeoutSeconds: Number(document.getElementById(
-                    "timeoutAsistente").value)
-            })
-        });
+        if (modoCreacionAsistente) {
+            const respuesta = await solicitarConfiguracionIA(
+                "/api/asistentes",
+                {
+                    method: "POST",
+                    body: JSON.stringify(configuracion)
+                });
+
+            mostrarMensajeConfiguracionIA(
+                "Asistente creado correctamente. Ahora puedes crear su prompt inicial.");
+
+            await cargarConfiguracionIA(respuesta.idAsistente);
+            return;
+        }
+
+        if (!asistenteSeleccionado) {
+            throw new Error("Selecciona un asistente antes de guardar.");
+        }
+
+        await solicitarConfiguracionIA(
+            `/api/asistentes/${asistenteSeleccionado.idAsistente}`,
+            {
+                method: "PUT",
+                body: JSON.stringify(configuracion)
+            });
 
         mostrarMensajeConfiguracionIA(
             "Configuración del asistente actualizada correctamente.");
 
-        await cargarConfiguracionIA();
+        await cargarConfiguracionIA(asistenteSeleccionado.idAsistente);
+    } catch (error) {
+        mostrarMensajeConfiguracionIA(error.message, true);
+    }
+});
+
+btnCambiarEstadoAsistente.addEventListener("click", async () => {
+    try {
+        if (!asistenteSeleccionado) {
+            return;
+        }
+
+        const nuevoEstado = !asistenteSeleccionado.activo;
+
+        await solicitarConfiguracionIA(
+            `/api/asistentes/${asistenteSeleccionado.idAsistente}/estado?activo=${nuevoEstado}`,
+            { method: "PATCH" });
+
+        mostrarMensajeConfiguracionIA(
+            nuevoEstado
+                ? "Asistente activado correctamente."
+                : "Asistente desactivado correctamente.");
+
+        await cargarConfiguracionIA(asistenteSeleccionado.idAsistente);
     } catch (error) {
         mostrarMensajeConfiguracionIA(error.message, true);
     }
@@ -249,32 +471,77 @@ formNuevaVersionPrompt.addEventListener("submit", async event => {
     event.preventDefault();
 
     try {
-        const idPrompt = document.getElementById("idPromptActivo").value;
-
-        if (!idPrompt) {
-            throw new Error(
-                "No existe un prompt activo para crear una nueva versión.");
+        if (!asistenteSeleccionado) {
+            throw new Error("Primero selecciona o crea un asistente.");
         }
 
-        await solicitarConfiguracionIA(
-            `/api/prompts/${idPrompt}/versiones`,
-            {
-                method: "POST",
-                body: JSON.stringify({
-                    nombre: document.getElementById("nombrePrompt").value,
-                    contenido: document.getElementById(
-                        "contenidoPrompt").value,
-                    motivoCambio: document.getElementById(
-                        "motivoCambioPrompt").value
-                })
-            });
+        const nombre = document.getElementById("nombrePrompt").value.trim();
+        const contenido = document.getElementById(
+            "contenidoPrompt").value.trim();
+
+        const motivoCambio = document.getElementById(
+            "motivoCambioPrompt").value.trim();
+
+        if (!promptActivo) {
+            await solicitarConfiguracionIA(
+                `/api/asistentes/${asistenteSeleccionado.idAsistente}/prompts`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({ nombre, contenido })
+                });
+
+            mostrarMensajeConfiguracionIA(
+                "Prompt inicial creado y activado correctamente.");
+        } else {
+            await solicitarConfiguracionIA(
+                `/api/prompts/${promptActivo.idPrompt}/versiones`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        nombre,
+                        contenido,
+                        motivoCambio
+                    })
+                });
+
+            mostrarMensajeConfiguracionIA(
+                "Nueva versión de prompt creada y activada correctamente.");
+        }
 
         document.getElementById("motivoCambioPrompt").value = "";
 
-        mostrarMensajeConfiguracionIA(
-            "Nueva versión de prompt creada y activada correctamente.");
+        await seleccionarAsistente(asistenteSeleccionado.idAsistente);
+    } catch (error) {
+        mostrarMensajeConfiguracionIA(error.message, true);
+    }
+});
 
-        await cargarConfiguracionIA();
+selectorPromptPrueba.addEventListener("change", event => {
+    promptSeleccionadoParaPrueba = prompts.find(
+        prompt => prompt.idPrompt === Number(event.target.value)) ?? null;
+
+    actualizarEstadoVisualPrompt();
+    resultadoPruebaPrompt.classList.add("d-none");
+});
+
+btnCambiarEstadoPrompt.addEventListener("click", async () => {
+    try {
+        if (!promptSeleccionadoParaPrueba) {
+            return;
+        }
+
+        const nuevoEstado = !promptSeleccionadoParaPrueba.activo;
+
+        await solicitarConfiguracionIA(
+            `/api/prompts/${promptSeleccionadoParaPrueba.idPrompt}/estado?activo=${nuevoEstado}`,
+            { method: "PATCH" });
+
+        mostrarMensajeConfiguracionIA(
+            nuevoEstado
+                ? "Prompt activado correctamente."
+                : "Prompt desactivado correctamente.");
+
+        await seleccionarAsistente(asistenteSeleccionado.idAsistente);
     } catch (error) {
         mostrarMensajeConfiguracionIA(error.message, true);
     }
@@ -284,9 +551,9 @@ formProbarPrompt.addEventListener("submit", async event => {
     event.preventDefault();
 
     try {
-        if (!asistenteActivo || !promptActivo) {
+        if (!asistenteSeleccionado || !promptSeleccionadoParaPrueba) {
             throw new Error(
-                "No hay asistente o prompt activo disponible para la prueba.");
+                "Selecciona un asistente y una versión de prompt para la prueba.");
         }
 
         const boton = formProbarPrompt.querySelector("button[type='submit']");
@@ -299,10 +566,10 @@ formProbarPrompt.addEventListener("submit", async event => {
                 {
                     method: "POST",
                     body: JSON.stringify({
-                        idAsistente: asistenteActivo.idAsistente,
-                        idPrompt: promptActivo.idPrompt,
+                        idAsistente: asistenteSeleccionado.idAsistente,
+                        idPrompt: promptSeleccionadoParaPrueba.idPrompt,
                         mensaje: document.getElementById(
-                            "mensajePrueba").value
+                            "mensajePrueba").value.trim()
                     })
                 });
 
@@ -316,6 +583,7 @@ formProbarPrompt.addEventListener("submit", async event => {
                 respuesta.respuesta;
 
             resultadoPruebaPrompt.classList.remove("d-none");
+
             mostrarMensajeConfiguracionIA(
                 "Prueba de prompt completada correctamente.");
         } finally {

@@ -16,7 +16,43 @@
 
     <section class="card shadow-sm mb-4">
         <div class="card-body">
-            <h2 class="h5 mb-3">Configuración activa</h2>
+            <h2 class="h5 mb-3">Administración de asistentes</h2>
+
+            <div class="row g-3 align-items-end">
+                <div class="col-md-7">
+                    <label for="selectorAsistente" class="form-label">
+                        Asistente seleccionado
+                    </label>
+                    <select id="selectorAsistente" class="form-select"></select>
+                </div>
+
+                <div class="col-md-2">
+                    <button id="btnNuevoAsistente"
+                            type="button"
+                            class="btn btn-outline-primary w-100">
+                        Nuevo asistente
+                    </button>
+                </div>
+
+                <div class="col-md-3">
+                    <button id="btnCambiarEstadoAsistente"
+                            type="button"
+                            class="btn btn-outline-secondary w-100">
+                    </button>
+                </div>
+            </div>
+
+            <p id="estadoAsistenteSeleccionado"
+               class="small text-muted mb-0 mt-3"></p>
+        </div>
+    </section>
+
+    <section class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <h2 id="tituloFormularioAsistente" class="h5 mb-3">
+                Configuración del asistente
+            </h2>
 
             <form id="formConfiguracionAsistente" class="row g-3">
                 <input id="idAsistente" type="hidden" />
@@ -110,7 +146,7 @@
                 </div>
 
                 <div class="col-12 text-end">
-                    <button class="btn btn-primary" type="submit">
+                    <button id="btnGuardarAsistente" class="btn btn-primary" type="submit">
                         Guardar configuración
                     </button>
                 </div>
@@ -172,8 +208,30 @@
             </p>
 
             <form id="formProbarPrompt" class="row g-3">
+
+                <div class="col-md-6">
+                    <label for="selectorPromptPrueba" class="form-label">
+                        Versión de prompt para la prueba
+                    </label>
+                    <select id="selectorPromptPrueba" class="form-select"></select>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+                    <button id="btnCambiarEstadoPrompt"
+                            type="button"
+                            class="btn btn-outline-secondary w-100">
+                    </button>
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+                    <p id="estadoPromptSeleccionado"
+                       class="small text-muted mb-2"></p>
+                </div>
+
                 <div class="col-12">
-                    <label for="mensajePrueba" class="form-label">Mensaje de prueba</label>
+                    <label for="mensajePrueba" class="form-label">
+                        Mensaje de prueba
+                    </label>
                     <textarea id="mensajePrueba"
                               class="form-control"
                               rows="3"
