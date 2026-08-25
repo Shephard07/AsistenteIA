@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Asistente.Infrastructure.Models;
 
@@ -23,4 +18,7 @@ public class OllamaChatRequest
 
     [JsonPropertyName("keep_alive")]
     public string KeepAlive { get; set; } = "0";
+
+    [JsonPropertyName("options")]
+    public OllamaGenerationOptions? Options { get; set; }
 }

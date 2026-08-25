@@ -1,5 +1,6 @@
 ﻿using Asistente.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using AsistenteEntity = Asistente.Domain.Entities.Asistente;
 
 namespace Asistente.Infrastructure.Persistence;
 
@@ -31,6 +32,13 @@ public class AsistenteIADbContext : DbContext
     public DbSet<AuditoriaActividad> AuditoriasActividad
         => Set<AuditoriaActividad>();
 
+    public DbSet<AsistenteEntity> Asistentes => Set<AsistenteEntity>();
+
+    public DbSet<PromptSistema> PromptsSistema => Set<PromptSistema>();
+
+    public DbSet<HistorialPrompt> HistorialesPrompt
+        => Set<HistorialPrompt>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,6 +65,11 @@ public class AsistenteIADbContext : DbContext
                 .WithOne(x => x.Conversacion)
                 .HasForeignKey(x => x.IdConversacion)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Asistente)
+                .WithMany()
+                .HasForeignKey(x => x.IdAsistente)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Mensaje>(entity =>
@@ -226,6 +239,147 @@ public class AsistenteIADbContext : DbContext
 
             entity.Property(x => x.DireccionIP)
                 .HasMaxLength(50)
+                .IsRequired();
+        });
+
+        modelBuilder.Entity<AsistenteEntity>(entity =>
+        {
+            entity.ToTable("Asistente");
+
+            entity.HasKey(x => x.IdAsistente);
+
+            entity.Property(x => x.IdAsistente)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Nombre)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Nombre)
+                .IsUnique();
+
+            entity.Property(x => x.Descripcion)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(x => x.ModeloIA)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Idioma)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.LongitudRespuesta)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.Formalidad)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.FormatoRespuesta)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Restricciones)
+                .HasMaxLength(4000)
+                .IsRequired();
+
+            entity.Property(x => x.MensajeBienvenida)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(x => x.Temperatura)
+                .HasColumnType("decimal(4,2)")
+                .IsRequired();
+
+            entity.Property(x => x.MaxTokens)
+                .IsRequired();
+
+            entity.Property(x => x.TimeoutSeconds)
+                .IsRequired();
+
+            entity.Property(x => x.Activo)
+                .IsRequired();
+
+            entity.Property(x => x.FechaCreacion)
+                .IsRequired();
+
+            entity.HasMany(x => x.Prompts)
+                .WithOne(x => x.Asistente)
+                .HasForeignKey(x => x.IdAsistente)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PromptSistema>(entity =>
+        {
+            entity.ToTable("PromptSistema");
+
+            entity.HasKey(x => x.IdPrompt);
+
+            entity.Property(x => x.IdPrompt)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Nombre)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(x => x.Contenido)
+                .IsRequired();
+
+            entity.Property(x => x.Version)
+                .IsRequired();
+
+            entity.Property(x => x.Activo)
+                .IsRequired();
+
+            entity.Property(x => x.FechaCreacion)
+                .IsRequired();
+
+            entity.Property(x => x.UsuarioCreacion)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            // Un asistente no puede repetir números de versión.
+            entity.HasIndex(x => new { x.IdAsistente, x.Version })
+                .IsUnique();
+
+            // Un asistente solo puede tener un Prompt activo.
+            entity.HasIndex(x => new { x.IdAsistente, x.Activo })
+                .HasFilter("[Activo] = 1")
+                .IsUnique();
+
+            entity.HasMany(x => x.Historiales)
+                .WithOne(x => x.PromptSistema)
+                .HasForeignKey(x => x.IdPrompt)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<HistorialPrompt>(entity =>
+        {
+            entity.ToTable("HistorialPrompt");
+
+            entity.HasKey(x => x.IdHistorial);
+
+            entity.Property(x => x.IdHistorial)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Version)
+                .IsRequired();
+
+            entity.Property(x => x.Contenido)
+                .IsRequired();
+
+            entity.Property(x => x.FechaModificacion)
+                .IsRequired();
+
+            entity.Property(x => x.UsuarioModificacion)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.MotivoCambio)
+                .HasMaxLength(500)
                 .IsRequired();
         });
     }

@@ -34,6 +34,10 @@ public static class DependencyInjection
         services.AddScoped<InicializadorSeguridad>();
 
         services.AddScoped<IConversacionRepository, ConversacionRepository>();
+        //
+        services.AddScoped<IAsistenteRepository, AsistenteRepository>();
+        services.AddScoped<IPromptSistemaRepository, PromptSistemaRepository>();
+        services.AddScoped<IHistorialPromptRepository, HistorialPromptRepository>();
 
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IRolRepository, RolRepository>();
@@ -51,8 +55,7 @@ public static class DependencyInjection
                 httpClient.BaseAddress = new Uri(
                     ollamaOptions.BaseUrl.TrimEnd('/') + "/");
 
-                httpClient.Timeout = TimeSpan.FromSeconds(
-                    ollamaOptions.TimeoutSeconds);
+                httpClient.Timeout = Timeout.InfiniteTimeSpan;
             });
 
         return services;

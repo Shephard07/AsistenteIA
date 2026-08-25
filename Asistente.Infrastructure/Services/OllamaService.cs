@@ -15,6 +15,8 @@ namespace Asistente.Infrastructure.Services;
 /// </summary>
 public class OllamaService : IAIProvider
 {
+    private const int IntentosMaximos = 2;
+
     private readonly HttpClient _httpClient;
     private readonly OllamaOptions _options;
     private readonly ILogger<OllamaService> _logger;
@@ -33,72 +35,111 @@ public class OllamaService : IAIProvider
         ChatRequestDto request,
         CancellationToken cancellationToken = default)
     {
+        var modelo = string.IsNullOrWhiteSpace(request.ModeloIA)
+            ? _options.Model
+            : request.ModeloIA;
+
+        var timeoutSeconds = request.TimeoutSeconds > 0
+            ? request.TimeoutSeconds
+            : _options.TimeoutSeconds;
+
         var ollamaRequest = new OllamaChatRequest
         {
-            Model = _options.Model,
+            Model = modelo,
             Stream = false,
             Think = false,
             KeepAlive = _options.KeepAlive,
-            Messages = request.Mensajes.Select(mensaje => new OllamaChatMessage
+            Options = new OllamaGenerationOptions
             {
-                Role = ConvertirRol(mensaje.Rol),
-                Content = mensaje.Contenido
-            }).ToList()
+                Temperature = request.Temperatura,
+                NumPredict = request.MaxTokens
+            },
+            Messages = request.Mensajes
+                .Select(mensaje => new OllamaChatMessage
+                {
+                    Role = ConvertirRol(mensaje.Rol),
+                    Content = mensaje.Contenido
+                })
+                .ToList()
         };
 
+        using var timeoutCancellationTokenSource =
+            new CancellationTokenSource(
+                TimeSpan.FromSeconds(timeoutSeconds));
+
+        using var linkedCancellationTokenSource =
+            CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                timeoutCancellationTokenSource.Token);
+
+        var token = linkedCancellationTokenSource.Token;
         var cronometro = Stopwatch.StartNew();
 
         try
         {
-            using var response = await _httpClient.PostAsJsonAsync(
-                "api/chat",
-                ollamaRequest,
-                cancellationToken);
-
-            cronometro.Stop();
-
-            if (response.StatusCode == HttpStatusCode.NotFound)
+            for (var intento = 1; intento <= IntentosMaximos; intento++)
             {
-                throw new InvalidOperationException(
-                    $"El modelo '{_options.Model}' no está instalado en Ollama.");
+                using var response = await _httpClient.PostAsJsonAsync(
+                    "api/chat",
+                    ollamaRequest,
+                    token);
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new InvalidOperationException(
+                        $"El modelo '{modelo}' no está instalado en Ollama.");
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var detalleError = await response.Content
+                        .ReadAsStringAsync(token);
+
+                    _logger.LogError(
+                        "Ollama devolvió el estado {StatusCode}. Detalle: {DetalleError}",
+                        response.StatusCode,
+                        detalleError);
+
+                    throw new HttpRequestException(
+                        "No fue posible obtener una respuesta de Ollama.");
+                }
+
+                var respuesta = await response.Content
+                    .ReadFromJsonAsync<OllamaChatResponse>(
+                        cancellationToken: token);
+
+                if (!string.IsNullOrWhiteSpace(respuesta?.Message?.Content))
+                {
+                    cronometro.Stop();
+
+                    return new ChatResponseDto
+                    {
+                        Contenido = respuesta.Message.Content.Trim(),
+                        TiempoRespuestaMs =
+                            (int)cronometro.ElapsedMilliseconds
+                    };
+                }
+
+                _logger.LogWarning(
+                    "Ollama devolvió una respuesta vacía. Intento {Intento} de {IntentosMaximos}.",
+                    intento,
+                    IntentosMaximos);
+
+                if (intento < IntentosMaximos)
+                {
+                    await Task.Delay(500, token);
+                }
             }
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var detalleError = await response.Content.ReadAsStringAsync(
-                    cancellationToken);
-
-                _logger.LogError(
-                    "Ollama devolvió el estado {StatusCode}. Detalle: {DetalleError}",
-                    response.StatusCode,
-                    detalleError);
-
-                throw new HttpRequestException(
-                    "No fue posible obtener una respuesta de Ollama.");
-            }
-
-            var respuesta = await response.Content
-                .ReadFromJsonAsync<OllamaChatResponse>(
-                    cancellationToken: cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(respuesta?.Message?.Content))
-            {
-                throw new InvalidOperationException(
-                    "Ollama no devolvió una respuesta válida.");
-            }
-
-            return new ChatResponseDto
-            {
-                Contenido = respuesta.Message.Content.Trim(),
-                TiempoRespuestaMs = (int)cronometro.ElapsedMilliseconds
-            };
+            throw new InvalidOperationException(
+                "Ollama no devolvió una respuesta válida.");
         }
         catch (OperationCanceledException)
             when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogError(
                 "Ollama excedió el tiempo máximo de espera de {TimeoutSeconds} segundos.",
-                _options.TimeoutSeconds);
+                timeoutSeconds);
 
             throw new TimeoutException(
                 "Ollama tardó demasiado en responder.");
@@ -117,6 +158,7 @@ public class OllamaService : IAIProvider
     {
         return rol.ToLowerInvariant() switch
         {
+            "sistema" or "system" => "system",
             "usuario" or "user" => "user",
             "asistente" or "assistant" => "assistant",
             _ => throw new ArgumentOutOfRangeException(nameof(rol))

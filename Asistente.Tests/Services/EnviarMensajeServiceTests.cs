@@ -14,6 +14,9 @@ public class EnviarMensajeServiceTests
 {
     private readonly Mock<IConversacionService> _conversacionServiceMock = new();
     private readonly Mock<IMensajeService> _mensajeServiceMock = new();
+    private readonly Mock<IAsistenteService> _asistenteServiceMock = new();
+    private readonly Mock<IPromptSistemaService> _promptSistemaServiceMock = new();
+    private readonly Mock<IPromptBuilder> _promptBuilderMock = new();
     private readonly Mock<IAIProvider> _aiProviderMock = new();
     private readonly EnviarMensajeRequestValidator _validator = new();
 
@@ -21,21 +24,16 @@ public class EnviarMensajeServiceTests
     public async Task EjecutarAsync_Debe_Registrar_Mensajes_Y_Devolver_Respuesta()
     {
         var conversacion = new Conversacion();
+        ConfigurarAsistenteYPromptActivos();
 
         _conversacionServiceMock
             .Setup(service => service.ObtenerOCrearAsync(
                 null,
+                1,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(conversacion);
 
-        _mensajeServiceMock
-            .Setup(service => service.RegistrarAsync(
-                It.IsAny<Conversacion>(),
-                It.IsAny<RolMensaje>(),
-                It.IsAny<string>(),
-                It.IsAny<int?>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        ConfigurarRegistroMensajes();
 
         _aiProviderMock
             .Setup(provider => provider.SendAsync(
@@ -57,6 +55,13 @@ public class EnviarMensajeServiceTests
 
         Assert.Equal("Respuesta generada para la prueba.", response.Respuesta);
         Assert.Equal(250, response.TiempoRespuestaMs);
+
+        _promptBuilderMock.Verify(
+            builder => builder.ConstruirSolicitudChat(
+                It.IsAny<AsistenteDto>(),
+                It.IsAny<PromptSistemaDto>(),
+                It.IsAny<IReadOnlyCollection<MensajeDto>>()),
+            Times.Once);
 
         _mensajeServiceMock.Verify(
             service => service.RegistrarAsync(
@@ -80,9 +85,12 @@ public class EnviarMensajeServiceTests
     [Fact]
     public async Task EjecutarAsync_Debe_Propagar_Error_Cuando_No_Existe_Conversacion()
     {
+        ConfigurarAsistenteYPromptActivos();
+
         _conversacionServiceMock
             .Setup(service => service.ObtenerOCrearAsync(
                 99,
+                1,
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new KeyNotFoundException(
                 "La conversación solicitada no existe."));
@@ -101,21 +109,16 @@ public class EnviarMensajeServiceTests
     public async Task EjecutarAsync_Debe_Propagar_Error_Del_Proveedor_IA()
     {
         var conversacion = new Conversacion();
+        ConfigurarAsistenteYPromptActivos();
 
         _conversacionServiceMock
             .Setup(service => service.ObtenerOCrearAsync(
                 null,
+                1,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(conversacion);
 
-        _mensajeServiceMock
-            .Setup(service => service.RegistrarAsync(
-                It.IsAny<Conversacion>(),
-                It.IsAny<RolMensaje>(),
-                It.IsAny<string>(),
-                It.IsAny<int?>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+        ConfigurarRegistroMensajes();
 
         _aiProviderMock
             .Setup(provider => provider.SendAsync(
@@ -160,8 +163,68 @@ public class EnviarMensajeServiceTests
         _conversacionServiceMock.Verify(
             service => service.ObtenerOCrearAsync(
                 It.IsAny<int?>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    private void ConfigurarAsistenteYPromptActivos()
+    {
+        var asistente = new AsistenteDto
+        {
+            IdAsistente = 1,
+            Nombre = "Asistente de prueba",
+            ModeloIA = "deepseek-r1:7b",
+            Temperatura = 0.5m,
+            MaxTokens = 512,
+            TimeoutSeconds = 120
+        };
+
+        var prompt = new PromptSistemaDto
+        {
+            IdPrompt = 1,
+            IdAsistente = 1,
+            Nombre = "Prompt de prueba",
+            Contenido = "Responde de manera profesional.",
+            Version = 1,
+            Activo = true
+        };
+
+        _asistenteServiceMock
+            .Setup(service => service.ObtenerActivoAsync(
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(asistente);
+
+        _promptSistemaServiceMock
+            .Setup(service => service.ObtenerActivoPorAsistenteAsync(
+                1,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(prompt);
+
+        _promptBuilderMock
+            .Setup(builder => builder.ConstruirSolicitudChat(
+                It.IsAny<AsistenteDto>(),
+                It.IsAny<PromptSistemaDto>(),
+                It.IsAny<IReadOnlyCollection<MensajeDto>>()))
+            .Returns(new ChatRequestDto
+            {
+                ModeloIA = "deepseek-r1:7b",
+                Temperatura = 0.5m,
+                MaxTokens = 512,
+                TimeoutSeconds = 120
+            });
+    }
+
+    private void ConfigurarRegistroMensajes()
+    {
+        _mensajeServiceMock
+            .Setup(service => service.RegistrarAsync(
+                It.IsAny<Conversacion>(),
+                It.IsAny<RolMensaje>(),
+                It.IsAny<string>(),
+                It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
     }
 
     private EnviarMensajeService CrearServicio()
@@ -169,6 +232,9 @@ public class EnviarMensajeServiceTests
         return new EnviarMensajeService(
             _conversacionServiceMock.Object,
             _mensajeServiceMock.Object,
+            _asistenteServiceMock.Object,
+            _promptSistemaServiceMock.Object,
+            _promptBuilderMock.Object,
             _aiProviderMock.Object,
             _validator);
     }

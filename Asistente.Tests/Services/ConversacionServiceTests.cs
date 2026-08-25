@@ -11,7 +11,7 @@ public class ConversacionServiceTests
     private readonly Mock<IConversacionRepository> _repositoryMock = new();
 
     [Fact]
-    public async Task ObtenerOCrearAsync_Debe_Crear_Conversacion_Cuando_No_Se_Recibe_Id()
+    public async Task ObtenerOCrearAsync_Debe_Crear_Conversacion_Con_Asistente_Cuando_No_Se_Recibe_Id()
     {
         _repositoryMock
             .Setup(repository => repository.AgregarAsync(
@@ -21,9 +21,12 @@ public class ConversacionServiceTests
 
         var service = new ConversacionService(_repositoryMock.Object);
 
-        var conversacion = await service.ObtenerOCrearAsync(null);
+        var conversacion = await service.ObtenerOCrearAsync(
+            null,
+            1);
 
         Assert.NotNull(conversacion);
+        Assert.Equal(1, conversacion.IdAsistente);
 
         _repositoryMock.Verify(
             repository => repository.AgregarAsync(
@@ -45,7 +48,9 @@ public class ConversacionServiceTests
 
         var service = new ConversacionService(_repositoryMock.Object);
 
-        var conversacion = await service.ObtenerOCrearAsync(1);
+        var conversacion = await service.ObtenerOCrearAsync(
+            1,
+            99);
 
         Assert.Same(conversacionEsperada, conversacion);
     }
@@ -62,6 +67,8 @@ public class ConversacionServiceTests
         var service = new ConversacionService(_repositoryMock.Object);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            service.ObtenerOCrearAsync(50));
+            service.ObtenerOCrearAsync(
+                50,
+                1));
     }
 }

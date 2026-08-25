@@ -19,6 +19,7 @@ public class ConversacionService : IConversacionService
 
     public async Task<Conversacion> ObtenerOCrearAsync(
         int? idConversacion,
+        int idAsistente,
         CancellationToken cancellationToken = default)
     {
         if (idConversacion.HasValue)
@@ -30,7 +31,7 @@ public class ConversacionService : IConversacionService
                     "La conversación solicitada no existe.");
         }
 
-        var conversacion = new Conversacion();
+        var conversacion = new Conversacion(idAsistente);
 
         await _conversacionRepository.AgregarAsync(
             conversacion,

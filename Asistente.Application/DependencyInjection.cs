@@ -16,8 +16,12 @@ public static class DependencyInjection
         services.AddScoped<IMensajeService, MensajeService>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IRolService, RolService>();
+        services.AddScoped<IAsistenteService, AsistenteService>();
+        services.AddScoped<IPromptSistemaService, PromptSistemaService>();
         services.AddScoped<IUsuarioService, UsuarioService>();
         services.AddScoped<IAuditoriaService, AuditoriaService>();
+        services.AddScoped<IPromptBuilder, PromptBuilder>();
+        services.AddScoped<IPruebaPromptService, PruebaPromptService>();
 
         services.AddValidatorsFromAssemblyContaining<
             EnviarMensajeRequestValidator>();

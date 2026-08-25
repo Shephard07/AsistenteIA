@@ -1,0 +1,240 @@
+﻿@model Asistente.Web.Models.AdministracionViewModel
+
+@{
+    ViewData["Title"] = "Configuración del asistente";
+}
+
+<div id="configuracionIAPage" data-api-base-url="@Model.ApiBaseUrl">
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Configuración del asistente IA</h1>
+        <p class="text-muted mb-0">
+            Administra el comportamiento, modelo, prompts versionados y pruebas del asistente.
+        </p>
+    </div>
+
+    <div id="mensajeConfiguracionIA" class="alert d-none" role="alert"></div>
+
+    <section class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Configuración activa</h2>
+
+            <form id="formConfiguracionAsistente" class="row g-3">
+                <input id="idAsistente" type="hidden" />
+
+                <div class="col-md-6">
+                    <label for="nombreAsistente" class="form-label">Nombre</label>
+                    <input id="nombreAsistente" class="form-control" maxlength="100" required />
+                </div>
+
+                <div class="col-md-6">
+                    <label for="modeloIA" class="form-label">Modelo de IA</label>
+                    <input id="modeloIA" class="form-control" maxlength="100" required />
+                </div>
+
+                <div class="col-12">
+                    <label for="descripcionAsistente" class="form-label">Descripción</label>
+                    <input id="descripcionAsistente" class="form-control" maxlength="500" required />
+                </div>
+
+                <div class="col-md-4">
+                    <label for="idiomaAsistente" class="form-label">Idioma</label>
+                    <input id="idiomaAsistente" class="form-control" maxlength="50" required />
+                </div>
+
+                <div class="col-md-4">
+                    <label for="longitudRespuesta" class="form-label">Longitud esperada</label>
+                    <input id="longitudRespuesta" class="form-control" maxlength="100" required />
+                </div>
+
+                <div class="col-md-4">
+                    <label for="formalidadAsistente" class="form-label">Formalidad</label>
+                    <input id="formalidadAsistente" class="form-control" maxlength="100" required />
+                </div>
+
+                <div class="col-md-4">
+                    <label for="temperaturaAsistente" class="form-label">Temperatura</label>
+                    <input id="temperaturaAsistente"
+                           class="form-control"
+                           type="number"
+                           step="0.1"
+                           min="0"
+                           max="2"
+                           required />
+                </div>
+
+                <div class="col-md-4">
+                    <label for="maxTokensAsistente" class="form-label">Máximo de tokens</label>
+                    <input id="maxTokensAsistente"
+                           class="form-control"
+                           type="number"
+                           min="1"
+                           max="4096"
+                           required />
+                </div>
+
+                <div class="col-md-4">
+                    <label for="timeoutAsistente" class="form-label">Tiempo máximo (segundos)</label>
+                    <input id="timeoutAsistente"
+                           class="form-control"
+                           type="number"
+                           min="1"
+                           max="600"
+                           required />
+                </div>
+
+                <div class="col-12">
+                    <label for="formatoRespuesta" class="form-label">Formato de respuesta</label>
+                    <textarea id="formatoRespuesta"
+                              class="form-control"
+                              rows="2"
+                              maxlength="1000"
+                              required></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label for="restriccionesAsistente" class="form-label">Restricciones</label>
+                    <textarea id="restriccionesAsistente"
+                              class="form-control"
+                              rows="3"
+                              maxlength="3000"
+                              required></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label for="mensajeBienvenida" class="form-label">Mensaje de bienvenida</label>
+                    <textarea id="mensajeBienvenida"
+                              class="form-control"
+                              rows="2"
+                              maxlength="1000"
+                              required></textarea>
+                </div>
+
+                <div class="col-12 text-end">
+                    <button class="btn btn-primary" type="submit">
+                        Guardar configuración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Nueva versión del prompt</h2>
+            <p class="text-muted small">
+                Se conserva la versión actual como historial y la nueva versión queda activa.
+            </p>
+
+            <form id="formNuevaVersionPrompt" class="row g-3">
+                <input id="idPromptActivo" type="hidden" />
+
+                <div class="col-md-6">
+                    <label for="nombrePrompt" class="form-label">Nombre de la versión</label>
+                    <input id="nombrePrompt"
+                           class="form-control"
+                           maxlength="150"
+                           placeholder="Ejemplo: Prompt empresarial refinado"
+                           required />
+                </div>
+
+                <div class="col-md-6">
+                    <label for="motivoCambioPrompt" class="form-label">Motivo del cambio</label>
+                    <input id="motivoCambioPrompt"
+                           class="form-control"
+                           maxlength="500"
+                           placeholder="Describe brevemente por qué se modifica."
+                           required />
+                </div>
+
+                <div class="col-12">
+                    <label for="contenidoPrompt" class="form-label">Contenido del prompt</label>
+                    <textarea id="contenidoPrompt"
+                              class="form-control"
+                              rows="7"
+                              maxlength="6000"
+                              required></textarea>
+                </div>
+
+                <div class="col-12 text-end">
+                    <button class="btn btn-outline-primary" type="submit">
+                        Crear versión y activar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <section class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Prueba de prompt</h2>
+            <p class="text-muted small">
+                La prueba consulta Ollama, pero no registra una conversación ni modifica la configuración.
+            </p>
+
+            <form id="formProbarPrompt" class="row g-3">
+                <div class="col-12">
+                    <label for="mensajePrueba" class="form-label">Mensaje de prueba</label>
+                    <textarea id="mensajePrueba"
+                              class="form-control"
+                              rows="3"
+                              maxlength="2000"
+                              placeholder="Escribe una consulta para probar el prompt..."
+                              required></textarea>
+                </div>
+
+                <div class="col-12 text-end">
+                    <button class="btn btn-success" type="submit">
+                        Probar con Ollama
+                    </button>
+                </div>
+            </form>
+
+            <div id="resultadoPruebaPrompt" class="d-none mt-4">
+                <hr />
+                <p class="mb-2">
+                    <strong>Tiempo de respuesta:</strong>
+                    <span id="tiempoPruebaPrompt"></span> ms
+                </p>
+
+                <label class="form-label fw-semibold">Prompt generado</label>
+                <pre id="promptGeneradoPrueba"
+                     class="bg-light border rounded p-3 small text-wrap"></pre>
+
+                <label class="form-label fw-semibold mt-3">Respuesta de Ollama</label>
+                <pre id="respuestaPruebaPrompt"
+                     class="bg-light border rounded p-3 text-wrap"></pre>
+            </div>
+        </div>
+    </section>
+
+    <section class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Historial de versiones</h2>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Versión</th>
+                            <th>Motivo</th>
+                            <th>Usuario</th>
+                            <th>Fecha</th>
+                            <th>Contenido</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historialPromptBody">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                Cargando historial...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/configuracion-ia.js" asp-append-version="true"></script>
+}

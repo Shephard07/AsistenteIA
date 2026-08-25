@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Asistente.Domain.Enums;
+﻿using Asistente.Domain.Enums;
 
 namespace Asistente.Domain.Entities;
 
-/// Representa una conversación registrada entre el usuario y el asistente
+/// <summary>
+/// Representa una conversación registrada entre el usuario y el asistente.
+/// </summary>
 public class Conversacion
 {
     public int IdConversacion { get; private set; }
+
+    public int? IdAsistente { get; private set; }
+
+    public Asistente? Asistente { get; private set; }
 
     public DateTime FechaInicio { get; private set; }
 
@@ -25,6 +26,19 @@ public class Conversacion
     {
         FechaInicio = DateTime.UtcNow;
         Estado = EstadoConversacion.Activa;
+    }
+
+    public Conversacion(int idAsistente)
+        : this()
+    {
+        if (idAsistente <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(idAsistente),
+                "El identificador del asistente debe ser mayor que cero.");
+        }
+
+        IdAsistente = idAsistente;
     }
 
     public void AgregarMensaje(Mensaje mensaje)

@@ -6,5 +6,6 @@ public interface IConversacionService
 {
     Task<Conversacion> ObtenerOCrearAsync(
         int? idConversacion,
+        int idAsistente,
         CancellationToken cancellationToken = default);
 }
