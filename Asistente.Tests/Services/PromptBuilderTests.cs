@@ -110,7 +110,8 @@ public class PromptBuilderTests
         var solicitud = builder.ConstruirSolicitudChat(
             asistente,
             prompt,
-            mensajes);
+            mensajes,
+            null);
 
         Assert.Equal("deepseek-r1:7b", solicitud.ModeloIA);
         Assert.Equal(0.4m, solicitud.Temperatura);

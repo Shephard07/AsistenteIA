@@ -15,6 +15,8 @@ public class EnviarMensajeService : IEnviarMensajeService
     private readonly IMensajeService _mensajeService;
     private readonly IAsistenteService _asistenteService;
     private readonly IPromptSistemaService _promptSistemaService;
+    private readonly IConfiguracionMemoriaService _configuracionMemoriaService;
+    private readonly IResumenConversacionService _resumenConversacionService;
     private readonly IPromptBuilder _promptBuilder;
     private readonly IAIProvider _aiProvider;
     private readonly IValidator<EnviarMensajeRequestDto> _validator;
@@ -24,6 +26,8 @@ public class EnviarMensajeService : IEnviarMensajeService
         IMensajeService mensajeService,
         IAsistenteService asistenteService,
         IPromptSistemaService promptSistemaService,
+        IConfiguracionMemoriaService configuracionMemoriaService,
+        IResumenConversacionService resumenConversacionService,
         IPromptBuilder promptBuilder,
         IAIProvider aiProvider,
         IValidator<EnviarMensajeRequestDto> validator)
@@ -32,6 +36,8 @@ public class EnviarMensajeService : IEnviarMensajeService
         _mensajeService = mensajeService;
         _asistenteService = asistenteService;
         _promptSistemaService = promptSistemaService;
+        _configuracionMemoriaService = configuracionMemoriaService;
+        _resumenConversacionService = resumenConversacionService;
         _promptBuilder = promptBuilder;
         _aiProvider = aiProvider;
         _validator = validator;
@@ -39,16 +45,22 @@ public class EnviarMensajeService : IEnviarMensajeService
 
     public async Task<EnviarMensajeResponseDto> EjecutarAsync(
         EnviarMensajeRequestDto request,
+        int idUsuario,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        if (idUsuario <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(idUsuario),
+                "El identificador del usuario debe ser mayor que cero.");
+        }
 
         await _validator.ValidateAndThrowAsync(
             request,
             cancellationToken);
 
-        // La configuración se obtiene desde SQL en cada solicitud.
-        // No existe un prompt de comportamiento escrito en el código.
         var asistente = await _asistenteService.ObtenerActivoAsync(
             cancellationToken);
 
@@ -57,9 +69,13 @@ public class EnviarMensajeService : IEnviarMensajeService
                 asistente.IdAsistente,
                 cancellationToken);
 
+        var configuracionMemoria = await _configuracionMemoriaService
+            .ObtenerActivaAsync(cancellationToken);
+
         var conversacion = await _conversacionService.ObtenerOCrearAsync(
             request.IdConversacion,
             asistente.IdAsistente,
+            idUsuario,
             cancellationToken);
 
         await _mensajeService.RegistrarAsync(
@@ -81,10 +97,16 @@ public class EnviarMensajeService : IEnviarMensajeService
             })
             .ToList();
 
+        var mensajesContexto = SeleccionarMensajesContexto(
+            mensajes,
+            conversacion.ResumenContexto,
+            configuracionMemoria);
+
         var chatRequest = _promptBuilder.ConstruirSolicitudChat(
             asistente,
             promptActivo,
-            mensajes);
+            mensajesContexto,
+            conversacion.ResumenContexto);
 
         var respuestaIA = await _aiProvider.SendAsync(
             chatRequest,
@@ -97,11 +119,65 @@ public class EnviarMensajeService : IEnviarMensajeService
             respuestaIA.TiempoRespuestaMs,
             cancellationToken);
 
+        await _resumenConversacionService.ActualizarSiEsNecesarioAsync(
+            conversacion,
+            asistente,
+            configuracionMemoria,
+            cancellationToken);
+
         return new EnviarMensajeResponseDto
         {
             IdConversacion = conversacion.IdConversacion,
             Respuesta = respuestaIA.Contenido,
             TiempoRespuestaMs = respuestaIA.TiempoRespuestaMs
         };
+    }
+
+    private static IReadOnlyCollection<MensajeDto>
+        SeleccionarMensajesContexto(
+            IReadOnlyCollection<MensajeDto> mensajes,
+            string? resumenContexto,
+            ConfiguracionMemoriaDto configuracion)
+    {
+        var tokensResumen = string.IsNullOrWhiteSpace(resumenContexto)
+            ? 0
+            : EstimarTokens(resumenContexto);
+
+        var tokensDisponibles = Math.Max(
+            0,
+            configuracion.MaximoTokensContexto - tokensResumen);
+
+        var mensajesSeleccionados = new List<MensajeDto>();
+        var tokensUsados = 0;
+
+        foreach (var mensaje in mensajes
+            .OrderByDescending(mensaje => mensaje.FechaHora))
+        {
+            if (mensajesSeleccionados.Count >=
+                configuracion.MaximoMensajesContexto)
+            {
+                break;
+            }
+
+            var tokensMensaje = EstimarTokens(mensaje.Contenido);
+
+            if (mensajesSeleccionados.Count > 0 &&
+                tokensUsados + tokensMensaje > tokensDisponibles)
+            {
+                continue;
+            }
+
+            mensajesSeleccionados.Add(mensaje);
+            tokensUsados += tokensMensaje;
+        }
+
+        return mensajesSeleccionados
+            .OrderBy(mensaje => mensaje.FechaHora)
+            .ToArray();
+    }
+
+    private static int EstimarTokens(string contenido)
+    {
+        return Math.Max(1, (contenido.Length + 3) / 4);
     }
 }

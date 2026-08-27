@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿//ConversacionRepository.cs
 using Asistente.Domain.Entities;
+using Asistente.Domain.Enums;
 using Asistente.Domain.Interfaces;
 using Asistente.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Asistente.Infrastructure.Repositories;
 
+/// <summary>
 /// Implementa la persistencia de conversaciones mediante SQL Server.
+/// </summary>
 public class ConversacionRepository : IConversacionRepository
 {
     private readonly AsistenteIADbContext _context;
@@ -29,6 +28,56 @@ public class ConversacionRepository : IConversacionRepository
             .FirstOrDefaultAsync(
                 x => x.IdConversacion == idConversacion,
                 cancellationToken);
+    }
+
+    public async Task<Conversacion?> ObtenerPorIdYUsuarioAsync(
+        int idConversacion,
+        int idUsuario,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Conversaciones
+            .Include(x => x.Mensajes)
+            .FirstOrDefaultAsync(
+                x => x.IdConversacion == idConversacion &&
+                     x.IdUsuario == idUsuario &&
+                     x.Estado != EstadoConversacion.Eliminada,
+                cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<Conversacion>>
+        ListarPorUsuarioAsync(
+            int idUsuario,
+            string? terminoBusqueda,
+            bool incluirArchivadas,
+            int cantidadMaxima,
+            CancellationToken cancellationToken = default)
+    {
+        var consulta = _context.Conversaciones
+            .AsNoTracking()
+            .Where(conversacion =>
+                conversacion.IdUsuario == idUsuario &&
+                conversacion.Estado != EstadoConversacion.Eliminada);
+
+        if (!incluirArchivadas)
+        {
+            consulta = consulta.Where(conversacion =>
+                conversacion.Estado != EstadoConversacion.Archivada);
+        }
+
+        if (!string.IsNullOrWhiteSpace(terminoBusqueda))
+        {
+            var termino = terminoBusqueda.Trim();
+
+            consulta = consulta.Where(conversacion =>
+                conversacion.Titulo != null &&
+                conversacion.Titulo.Contains(termino));
+        }
+
+        return await consulta
+            .OrderByDescending(conversacion =>
+                conversacion.FechaUltimaActividad)
+            .Take(cantidadMaxima)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AgregarAsync(

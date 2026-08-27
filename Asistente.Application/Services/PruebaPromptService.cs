@@ -62,13 +62,14 @@ public class PruebaPromptService : IPruebaPromptService
             }
         };
 
-        var solicitudChat = _promptBuilder.ConstruirSolicitudChat(
+        var chatRequest = _promptBuilder.ConstruirSolicitudChat(
             asistente,
             prompt,
-            mensajes);
+            mensajes,
+            null);
 
         var respuestaIA = await _aiProvider.SendAsync(
-            solicitudChat,
+            chatRequest,
             cancellationToken);
 
         return new ProbarPromptResponseDto

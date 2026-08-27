@@ -11,5 +11,6 @@ public interface IPromptBuilder
     ChatRequestDto ConstruirSolicitudChat(
         AsistenteDto asistente,
         PromptSistemaDto prompt,
-        IReadOnlyCollection<MensajeDto> mensajes);
+        IReadOnlyCollection<MensajeDto> mensajes,
+        string? resumenContexto);
 }

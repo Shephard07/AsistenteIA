@@ -35,16 +35,37 @@ public class PromptBuilder : IPromptBuilder
     public ChatRequestDto ConstruirSolicitudChat(
         AsistenteDto asistente,
         PromptSistemaDto prompt,
-        IReadOnlyCollection<MensajeDto> mensajes)
+        IReadOnlyCollection<MensajeDto> mensajes,
+        string? resumenContexto)
     {
         ArgumentNullException.ThrowIfNull(mensajes);
 
-        var mensajeSistema = new MensajeDto
+        var mensajesSolicitud = new List<MensajeDto>
         {
-            Rol = "system",
-            Contenido = ConstruirPromptSistema(asistente, prompt),
-            FechaHora = DateTime.UtcNow
+            new()
+            {
+                Rol = "system",
+                Contenido = ConstruirPromptSistema(asistente, prompt),
+                FechaHora = DateTime.UtcNow
+            }
         };
+
+        if (!string.IsNullOrWhiteSpace(resumenContexto))
+        {
+            mensajesSolicitud.Add(new MensajeDto
+            {
+                Rol = "system",
+                Contenido = string.Join(
+                    Environment.NewLine,
+                    [
+                        "Resumen de la conversación previa:",
+                        resumenContexto.Trim()
+                    ]),
+                FechaHora = DateTime.UtcNow
+            });
+        }
+
+        mensajesSolicitud.AddRange(mensajes);
 
         return new ChatRequestDto
         {
@@ -52,9 +73,7 @@ public class PromptBuilder : IPromptBuilder
             Temperatura = asistente.Temperatura,
             MaxTokens = asistente.MaxTokens,
             TimeoutSeconds = asistente.TimeoutSeconds,
-            Mensajes = new[] { mensajeSistema }
-                .Concat(mensajes)
-                .ToList()
+            Mensajes = mensajesSolicitud
         };
     }
 }

@@ -1,4 +1,5 @@
-﻿using Asistente.Application.Interfaces;
+﻿//DependencyInjection.cs
+using Asistente.Application.Interfaces;
 using Asistente.Application.Services;
 using Asistente.Application.Validators;
 using FluentValidation;
@@ -22,6 +23,9 @@ public static class DependencyInjection
         services.AddScoped<IAuditoriaService, AuditoriaService>();
         services.AddScoped<IPromptBuilder, PromptBuilder>();
         services.AddScoped<IPruebaPromptService, PruebaPromptService>();
+        services.AddScoped<IConfiguracionMemoriaService,ConfiguracionMemoriaService>();
+        services.AddScoped<IConversacionGestionService,ConversacionGestionService>();
+        services.AddScoped<IResumenConversacionService,ResumenConversacionService>();
 
         services.AddValidatorsFromAssemblyContaining<
             EnviarMensajeRequestValidator>();

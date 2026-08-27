@@ -43,7 +43,8 @@ public class PruebaPromptServiceTests
             .Setup(builder => builder.ConstruirSolicitudChat(
                 asistente,
                 prompt,
-                It.IsAny<IReadOnlyCollection<MensajeDto>>()))
+                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+                null))
             .Returns(new ChatRequestDto
             {
                 ModeloIA = "deepseek-r1:7b",
@@ -90,7 +91,8 @@ public class PruebaPromptServiceTests
                     mensajes =>
                         mensajes.Count == 1 &&
                         mensajes.First().Contenido ==
-                            "¿Qué es un inventario?")),
+                            "¿Qué es un inventario?"),
+                null),
             Times.Once);
 
         _aiProviderMock.Verify(

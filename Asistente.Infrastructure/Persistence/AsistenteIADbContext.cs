@@ -1,4 +1,5 @@
-﻿using Asistente.Domain.Entities;
+﻿//AsistenteIADbContext.cs
+using Asistente.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using AsistenteEntity = Asistente.Domain.Entities.Asistente;
 
@@ -38,6 +39,9 @@ public class AsistenteIADbContext : DbContext
 
     public DbSet<HistorialPrompt> HistorialesPrompt
         => Set<HistorialPrompt>();
+    public DbSet<ConfiguracionMemoria> ConfiguracionesMemoria
+    => Set<ConfiguracionMemoria>();
+
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -70,7 +74,37 @@ public class AsistenteIADbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.IdAsistente)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(x => x.Titulo)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.FechaUltimaActividad)
+                .IsRequired();
+
+            entity.Property(x => x.ResumenContexto)
+                .HasMaxLength(8000);
+
+            entity.Property(x => x.TotalMensajes)
+                .IsRequired();
+
+            entity.Property(x => x.TotalMensajesResumidos)
+                .IsRequired()
+                .HasDefaultValue(0);
+
+            entity.HasOne(x => x.Usuario)
+                .WithMany(x => x.Conversaciones)
+                .HasForeignKey(x => x.IdUsuario)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new
+            {
+                x.IdUsuario,
+                x.Estado,
+                x.FechaUltimaActividad
+            });
         });
+
+
 
         modelBuilder.Entity<Mensaje>(entity =>
         {
@@ -149,6 +183,10 @@ public class AsistenteIADbContext : DbContext
                 .WithOne(x => x.Usuario)
                 .HasForeignKey(x => x.IdUsuario)
                 .OnDelete(DeleteBehavior.SetNull);
+            entity.HasMany(x => x.Conversaciones)
+                .WithOne(x => x.Usuario)
+                .HasForeignKey(x => x.IdUsuario)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Rol>(entity =>
@@ -381,6 +419,46 @@ public class AsistenteIADbContext : DbContext
             entity.Property(x => x.MotivoCambio)
                 .HasMaxLength(500)
                 .IsRequired();
+        });
+
+        modelBuilder.Entity<ConfiguracionMemoria>(entity =>
+        {
+            entity.ToTable("ConfiguracionMemoria");
+
+            entity.HasKey(x => x.IdConfiguracion);
+
+            entity.Property(x => x.IdConfiguracion)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.MaximoMensajesContexto)
+                .IsRequired();
+
+            entity.Property(x => x.MaximoTokensContexto)
+                .IsRequired();
+
+            entity.Property(x => x.LongitudResumen)
+                .IsRequired();
+
+            entity.Property(x => x.CantidadConversacionesVisibles)
+                .IsRequired();
+
+            entity.Property(x => x.Activo)
+                .IsRequired();
+
+            // Solo puede existir una configuración de memoria activa.
+            entity.HasIndex(x => x.Activo)
+                .HasFilter("[Activo] = 1")
+                .IsUnique();
+
+            entity.HasData(new
+            {
+                IdConfiguracion = 1,
+                MaximoMensajesContexto = 10,
+                MaximoTokensContexto = 3000,
+                LongitudResumen = 800,
+                CantidadConversacionesVisibles = 20,
+                Activo = true
+            });
         });
     }
 }

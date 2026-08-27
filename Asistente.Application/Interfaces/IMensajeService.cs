@@ -1,4 +1,5 @@
-﻿using Asistente.Domain.Entities;
+﻿//IMensajeService.cs
+using Asistente.Domain.Entities;
 using Asistente.Domain.Enums;
 
 namespace Asistente.Application.Interfaces;

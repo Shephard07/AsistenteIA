@@ -4,6 +4,7 @@ using Asistente.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Asistente.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AsistenteIADbContext))]
-    partial class AsistenteIADbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826145808_ImplementarMemoriaConversacional")]
+    partial class ImplementarMemoriaConversacional
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -259,11 +262,6 @@ namespace Asistente.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("TotalMensajes")
                         .HasColumnType("int");
-
-                    b.Property<int>("TotalMensajesResumidos")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
 
                     b.HasKey("IdConversacion");
 

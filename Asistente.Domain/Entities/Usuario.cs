@@ -1,4 +1,6 @@
-﻿using System;
+﻿//Usuario.cs
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -34,6 +36,9 @@ public class Usuario
 
     public ICollection<AuditoriaActividad> Actividades { get; private set; }
         = new List<AuditoriaActividad>();
+
+    public ICollection<Conversacion> Conversaciones { get; private set; }
+    = new List<Conversacion>();
 
     private Usuario()
     {

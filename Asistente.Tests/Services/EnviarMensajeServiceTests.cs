@@ -12,13 +12,19 @@ namespace Asistente.Tests.Services;
 
 public class EnviarMensajeServiceTests
 {
+    private const int IdUsuarioPrueba = 99;
+
     private readonly Mock<IConversacionService> _conversacionServiceMock = new();
     private readonly Mock<IMensajeService> _mensajeServiceMock = new();
     private readonly Mock<IAsistenteService> _asistenteServiceMock = new();
     private readonly Mock<IPromptSistemaService> _promptSistemaServiceMock = new();
+    private readonly Mock<IConfiguracionMemoriaService>
+        _configuracionMemoriaServiceMock = new();
     private readonly Mock<IPromptBuilder> _promptBuilderMock = new();
     private readonly Mock<IAIProvider> _aiProviderMock = new();
     private readonly EnviarMensajeRequestValidator _validator = new();
+
+    private readonly Mock<IResumenConversacionService>_resumenConversacionServiceMock = new();
 
     [Fact]
     public async Task EjecutarAsync_Debe_Registrar_Mensajes_Y_Devolver_Respuesta()
@@ -30,6 +36,7 @@ public class EnviarMensajeServiceTests
             .Setup(service => service.ObtenerOCrearAsync(
                 null,
                 1,
+                IdUsuarioPrueba,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(conversacion);
 
@@ -51,7 +58,8 @@ public class EnviarMensajeServiceTests
             new EnviarMensajeRequestDto
             {
                 Mensaje = "Hola, necesito una recomendación."
-            });
+            },
+            IdUsuarioPrueba);
 
         Assert.Equal("Respuesta generada para la prueba.", response.Respuesta);
         Assert.Equal(250, response.TiempoRespuestaMs);
@@ -60,7 +68,8 @@ public class EnviarMensajeServiceTests
             builder => builder.ConstruirSolicitudChat(
                 It.IsAny<AsistenteDto>(),
                 It.IsAny<PromptSistemaDto>(),
-                It.IsAny<IReadOnlyCollection<MensajeDto>>()),
+                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+                It.IsAny<string?>()),
             Times.Once);
 
         _mensajeServiceMock.Verify(
@@ -80,6 +89,14 @@ public class EnviarMensajeServiceTests
                 250,
                 It.IsAny<CancellationToken>()),
             Times.Once);
+
+        _resumenConversacionServiceMock
+        .Setup(service => service.ActualizarSiEsNecesarioAsync(
+            It.IsAny<Conversacion>(),
+            It.IsAny<AsistenteDto>(),
+            It.IsAny<ConfiguracionMemoriaDto>(),
+            It.IsAny<CancellationToken>()))
+        .Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -91,6 +108,7 @@ public class EnviarMensajeServiceTests
             .Setup(service => service.ObtenerOCrearAsync(
                 99,
                 1,
+                IdUsuarioPrueba,
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new KeyNotFoundException(
                 "La conversación solicitada no existe."));
@@ -98,11 +116,13 @@ public class EnviarMensajeServiceTests
         var service = CrearServicio();
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            service.EjecutarAsync(new EnviarMensajeRequestDto
-            {
-                IdConversacion = 99,
-                Mensaje = "Consulta de prueba"
-            }));
+            service.EjecutarAsync(
+                new EnviarMensajeRequestDto
+                {
+                    IdConversacion = 99,
+                    Mensaje = "Consulta de prueba"
+                },
+                IdUsuarioPrueba));
     }
 
     [Fact]
@@ -115,6 +135,7 @@ public class EnviarMensajeServiceTests
             .Setup(service => service.ObtenerOCrearAsync(
                 null,
                 1,
+                IdUsuarioPrueba,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(conversacion);
 
@@ -130,10 +151,12 @@ public class EnviarMensajeServiceTests
         var service = CrearServicio();
 
         await Assert.ThrowsAsync<HttpRequestException>(() =>
-            service.EjecutarAsync(new EnviarMensajeRequestDto
-            {
-                Mensaje = "Consulta de prueba"
-            }));
+            service.EjecutarAsync(
+                new EnviarMensajeRequestDto
+                {
+                    Mensaje = "Consulta de prueba"
+                },
+                IdUsuarioPrueba));
 
         _mensajeServiceMock.Verify(
             service => service.RegistrarAsync(
@@ -146,15 +169,118 @@ public class EnviarMensajeServiceTests
     }
 
     [Fact]
+    public async Task EjecutarAsync_Debe_Enviar_Solo_Mensajes_Permitidos_Y_Resumen()
+    {
+        var conversacion = new Conversacion(1, IdUsuarioPrueba);
+
+        conversacion.AgregarMensaje(new Mensaje(
+            RolMensaje.Usuario,
+            "Primer mensaje de la conversación.",
+            null));
+
+        conversacion.AgregarMensaje(new Mensaje(
+            RolMensaje.Asistente,
+            "Primera respuesta de la conversación.",
+            100));
+
+        conversacion.AgregarMensaje(new Mensaje(
+            RolMensaje.Usuario,
+            "Segundo mensaje de la conversación.",
+            null));
+
+        conversacion.ActualizarResumenContexto(
+            "El usuario solicita apoyo para organizar inventarios.");
+
+        ConfigurarAsistenteYPromptActivos();
+        ConfigurarRegistroMensajes();
+
+        _conversacionServiceMock
+            .Setup(service => service.ObtenerOCrearAsync(
+                null,
+                1,
+                IdUsuarioPrueba,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(conversacion);
+
+        _configuracionMemoriaServiceMock
+            .Setup(service => service.ObtenerActivaAsync(
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConfiguracionMemoriaDto
+            {
+                IdConfiguracion = 1,
+                MaximoMensajesContexto = 2,
+                MaximoTokensContexto = 1000,
+                LongitudResumen = 500,
+                CantidadConversacionesVisibles = 20,
+                Activo = true
+            });
+
+        IReadOnlyCollection<MensajeDto>? mensajesEnviados = null;
+        string? resumenEnviado = null;
+
+        _promptBuilderMock
+            .Setup(builder => builder.ConstruirSolicitudChat(
+                It.IsAny<AsistenteDto>(),
+                It.IsAny<PromptSistemaDto>(),
+                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+                It.IsAny<string?>()))
+            .Callback((
+                AsistenteDto asistente,
+                PromptSistemaDto prompt,
+                IReadOnlyCollection<MensajeDto> mensajes,
+                string? resumen) =>
+            {
+                mensajesEnviados = mensajes;
+                resumenEnviado = resumen;
+            })
+            .Returns(new ChatRequestDto());
+
+        _aiProviderMock
+            .Setup(provider => provider.SendAsync(
+                It.IsAny<ChatRequestDto>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponseDto
+            {
+                Contenido = "Respuesta de prueba.",
+                TiempoRespuestaMs = 100
+            });
+
+        var service = CrearServicio();
+
+        await service.EjecutarAsync(
+            new EnviarMensajeRequestDto
+            {
+                Mensaje = "Nuevo mensaje de prueba."
+            },
+            IdUsuarioPrueba);
+
+        Assert.NotNull(mensajesEnviados);
+        Assert.Equal(2, mensajesEnviados.Count);
+        Assert.Equal(
+            "Primera respuesta de la conversación.",
+            mensajesEnviados.First().Contenido);
+        Assert.Equal(
+            "Segundo mensaje de la conversación.",
+            mensajesEnviados.Last().Contenido);
+
+        Assert.Equal(
+            "El usuario solicita apoyo para organizar inventarios.",
+            resumenEnviado);
+    }   
+
+
+    [Fact]
     public async Task EjecutarAsync_Debe_Lanzar_Error_De_Validacion_Con_Mensaje_Vacio()
     {
         var service = CrearServicio();
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() =>
-            service.EjecutarAsync(new EnviarMensajeRequestDto
-            {
-                Mensaje = string.Empty
-            }));
+            service.EjecutarAsync(
+                new EnviarMensajeRequestDto
+                {
+                    Mensaje = string.Empty
+                },
+                IdUsuarioPrueba));
 
         Assert.Contains(
             exception.Errors,
@@ -163,6 +289,7 @@ public class EnviarMensajeServiceTests
         _conversacionServiceMock.Verify(
             service => service.ObtenerOCrearAsync(
                 It.IsAny<int?>(),
+                It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
@@ -201,11 +328,25 @@ public class EnviarMensajeServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(prompt);
 
+        _configuracionMemoriaServiceMock
+            .Setup(service => service.ObtenerActivaAsync(
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConfiguracionMemoriaDto
+            {
+                IdConfiguracion = 1,
+                MaximoMensajesContexto = 10,
+                MaximoTokensContexto = 1000,
+                LongitudResumen = 500,
+                CantidadConversacionesVisibles = 20,
+                Activo = true
+            });
+
         _promptBuilderMock
             .Setup(builder => builder.ConstruirSolicitudChat(
                 It.IsAny<AsistenteDto>(),
                 It.IsAny<PromptSistemaDto>(),
-                It.IsAny<IReadOnlyCollection<MensajeDto>>()))
+                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+                It.IsAny<string?>()))
             .Returns(new ChatRequestDto
             {
                 ModeloIA = "deepseek-r1:7b",
@@ -234,6 +375,8 @@ public class EnviarMensajeServiceTests
             _mensajeServiceMock.Object,
             _asistenteServiceMock.Object,
             _promptSistemaServiceMock.Object,
+            _configuracionMemoriaServiceMock.Object,
+            _resumenConversacionServiceMock.Object,
             _promptBuilderMock.Object,
             _aiProviderMock.Object,
             _validator);

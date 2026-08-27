@@ -1,42 +1,54 @@
-﻿using Asistente.Application.Interfaces;
-using Asistente.Domain.Entities;
-using Asistente.Domain.Interfaces;
+﻿    using Asistente.Application.Interfaces;
+    using Asistente.Domain.Entities;
+    using Asistente.Domain.Interfaces;
 
-namespace Asistente.Application.Services;
+    namespace Asistente.Application.Services;
 
-/// <summary>
-/// Gestiona la obtención y creación de conversaciones.
-/// </summary>
-public class ConversacionService : IConversacionService
-{
-    private readonly IConversacionRepository _conversacionRepository;
-
-    public ConversacionService(
-        IConversacionRepository conversacionRepository)
+    /// <summary>
+    /// Gestiona la obtención y creación de conversaciones.
+    /// </summary>
+    public class ConversacionService : IConversacionService
     {
-        _conversacionRepository = conversacionRepository;
-    }
+        private readonly IConversacionRepository _conversacionRepository;
 
-    public async Task<Conversacion> ObtenerOCrearAsync(
-        int? idConversacion,
-        int idAsistente,
-        CancellationToken cancellationToken = default)
-    {
-        if (idConversacion.HasValue)
+        public ConversacionService(
+            IConversacionRepository conversacionRepository)
         {
-            return await _conversacionRepository.ObtenerPorIdAsync(
-                idConversacion.Value,
-                cancellationToken)
-                ?? throw new KeyNotFoundException(
-                    "La conversación solicitada no existe.");
+            _conversacionRepository = conversacionRepository;
         }
 
-        var conversacion = new Conversacion(idAsistente);
+        public async Task<Conversacion> ObtenerOCrearAsync(
+            int? idConversacion,
+            int idAsistente,
+            int idUsuario,
+            CancellationToken cancellationToken = default)
+        {
+            if (idUsuario <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(idUsuario),
+                    "El identificador del usuario debe ser mayor que cero.");
+            }
 
-        await _conversacionRepository.AgregarAsync(
-            conversacion,
-            cancellationToken);
+            if (idConversacion.HasValue)
+            {
+                return await _conversacionRepository
+                    .ObtenerPorIdYUsuarioAsync(
+                        idConversacion.Value,
+                        idUsuario,
+                        cancellationToken)
+                    ?? throw new KeyNotFoundException(
+                        "La conversación solicitada no existe.");
+            }
 
-        return conversacion;
+            var conversacion = new Conversacion(
+                idAsistente,
+                idUsuario);
+
+            await _conversacionRepository.AgregarAsync(
+                conversacion,
+                cancellationToken);
+
+            return conversacion;
+        }
     }
-}

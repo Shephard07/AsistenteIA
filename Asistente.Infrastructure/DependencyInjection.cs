@@ -1,4 +1,5 @@
-﻿using Asistente.Application.Interfaces;
+﻿//DependencyInjection.cs
+using Asistente.Application.Interfaces;
 using Asistente.Domain.Interfaces;
 using Asistente.Infrastructure.Options;
 using Asistente.Infrastructure.Persistence;
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<InicializadorSeguridad>();
 
         services.AddScoped<IConversacionRepository, ConversacionRepository>();
+        services.AddScoped<IConfiguracionMemoriaRepository,ConfiguracionMemoriaRepository>();
         //
         services.AddScoped<IAsistenteRepository, AsistenteRepository>();
         services.AddScoped<IPromptSistemaRepository, PromptSistemaRepository>();

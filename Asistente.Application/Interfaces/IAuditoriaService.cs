@@ -1,4 +1,5 @@
-﻿using Asistente.Application.DTOs;
+﻿//IAuditoriaService.cs
+using Asistente.Application.DTOs;
 
 namespace Asistente.Application.Interfaces;
 
