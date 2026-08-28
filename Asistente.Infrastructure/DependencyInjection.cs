@@ -1,6 +1,7 @@
 ﻿//DependencyInjection.cs
 using Asistente.Application.Interfaces;
 using Asistente.Domain.Interfaces;
+using Asistente.Infrastructure.Configuration;
 using Asistente.Infrastructure.Options;
 using Asistente.Infrastructure.Persistence;
 using Asistente.Infrastructure.Repositories;
@@ -45,7 +46,18 @@ public static class DependencyInjection
         services.AddScoped<IRolRepository, RolRepository>();
         services.AddScoped<IAuditoriaRepository, AuditoriaRepository>();
 
+        services.AddScoped<ICategoriaDocumentoRepository, CategoriaDocumentoRepository>();
+        services.AddScoped<IDocumentoRepository, DocumentoRepository>();
+
         services.AddScoped<IPasswordService, PasswordService>();
+
+        services.Configure<ConfiguracionGestorDocumental>(
+    configuration.GetSection(
+        ConfiguracionGestorDocumental.Seccion));
+
+        services.AddScoped<
+            IAlmacenamientoDocumentoService,
+            AlmacenamientoDocumentoService>();
 
         services.AddHttpClient<IAIProvider, OllamaService>(
             (serviceProvider, httpClient) =>

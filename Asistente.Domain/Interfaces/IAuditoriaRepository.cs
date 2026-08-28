@@ -1,4 +1,5 @@
-﻿using Asistente.Domain.Entities;
+﻿//IAuditoriaRepository.cs
+using Asistente.Domain.Entities;
 
 namespace Asistente.Domain.Interfaces;
 
@@ -20,6 +21,11 @@ public interface IAuditoriaRepository
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<AuditoriaActividad>> ListarActividadesAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<AuditoriaActividad>>
+    ListarActividadesPorDocumentoAsync(
+        int idDocumento,
         CancellationToken cancellationToken = default);
 
     Task GuardarCambiosAsync(

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Asistente.Domain.Entities;
 
@@ -11,6 +7,8 @@ public class AuditoriaActividad
     public int IdActividad { get; private set; }
 
     public int? IdUsuario { get; private set; }
+
+    public int? IdDocumento { get; private set; }
 
     public DateTime FechaHora { get; private set; }
 
@@ -24,6 +22,8 @@ public class AuditoriaActividad
 
     public Usuario? Usuario { get; private set; }
 
+    public Documento? Documento { get; private set; }
+
     private AuditoriaActividad()
     {
     }
@@ -33,9 +33,11 @@ public class AuditoriaActividad
         string modulo,
         string accion,
         string descripcion,
-        string direccionIP)
+        string direccionIP,
+        int? idDocumento = null)
     {
         IdUsuario = idUsuario;
+        IdDocumento = idDocumento;
         Modulo = modulo;
         Accion = accion;
         Descripcion = descripcion;

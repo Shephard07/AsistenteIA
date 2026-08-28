@@ -1,4 +1,5 @@
 ﻿//DependencyInjection.cs
+using Asistente.Application.DTOs;
 using Asistente.Application.Interfaces;
 using Asistente.Application.Services;
 using Asistente.Application.Validators;
@@ -38,6 +39,26 @@ public static class DependencyInjection
         services.AddScoped<
     IDepuracionContextoService,
     DepuracionContextoService>();
+
+        services.AddScoped<ICategoriaDocumentoService, CategoriaDocumentoService>();
+
+        services.AddScoped<
+            IValidator<CrearCategoriaDocumentoRequestDto>,
+            CrearCategoriaDocumentoRequestValidator>();
+
+        services.AddScoped<
+            IValidator<ActualizarCategoriaDocumentoRequestDto>,
+            ActualizarCategoriaDocumentoRequestValidator>();
+
+        services.AddScoped<IDocumentoService, DocumentoService>();
+
+        services.AddScoped<
+            IValidator<CrearDocumentoRequestDto>,
+            CrearDocumentoRequestValidator>();
+
+        services.AddScoped<
+            IValidator<ActualizarDocumentoRequestDto>,
+            ActualizarDocumentoRequestValidator>();
 
         services.AddValidatorsFromAssemblyContaining<
             EnviarMensajeRequestValidator>();

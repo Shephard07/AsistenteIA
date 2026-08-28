@@ -1,4 +1,5 @@
-﻿using Asistente.Domain.Entities;
+﻿//AuditoriaRepository.cs
+using Asistente.Domain.Entities;
 using Asistente.Domain.Enums;
 using Asistente.Domain.Interfaces;
 using Asistente.Infrastructure.Persistence;
@@ -61,6 +62,19 @@ public class AuditoriaRepository : IAuditoriaRepository
         return await _context.AuditoriasActividad
             .Include(actividad => actividad.Usuario)
             .AsNoTracking()
+            .OrderByDescending(actividad => actividad.FechaHora)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<AuditoriaActividad>>
+    ListarActividadesPorDocumentoAsync(
+        int idDocumento,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.AuditoriasActividad
+            .Include(actividad => actividad.Usuario)
+            .AsNoTracking()
+            .Where(actividad => actividad.IdDocumento == idDocumento)
             .OrderByDescending(actividad => actividad.FechaHora)
             .ToListAsync(cancellationToken);
     }

@@ -39,6 +39,16 @@ public class AsistenteIADbContext : DbContext
 
     public DbSet<HistorialPrompt> HistorialesPrompt
         => Set<HistorialPrompt>();
+
+    public DbSet<CategoriaDocumento> CategoriasDocumento
+    => Set<CategoriaDocumento>();
+
+    public DbSet<Documento> Documentos
+        => Set<Documento>();
+
+    public DbSet<DocumentoVersion> DocumentosVersiones
+        => Set<DocumentoVersion>();
+
     public DbSet<ConfiguracionMemoria> ConfiguracionesMemoria
     => Set<ConfiguracionMemoria>();
 
@@ -278,6 +288,17 @@ public class AsistenteIADbContext : DbContext
             entity.Property(x => x.DireccionIP)
                 .HasMaxLength(50)
                 .IsRequired();
+
+            entity.HasOne(x => x.Documento)
+                .WithMany(x => x.ActividadesAuditoria)
+                .HasForeignKey(x => x.IdDocumento)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => new
+            {
+                x.IdDocumento,
+                x.FechaHora
+            });
         });
 
         modelBuilder.Entity<AsistenteEntity>(entity =>
@@ -419,6 +440,149 @@ public class AsistenteIADbContext : DbContext
             entity.Property(x => x.MotivoCambio)
                 .HasMaxLength(500)
                 .IsRequired();
+        });
+
+        modelBuilder.Entity<CategoriaDocumento>(entity =>
+        {
+            entity.ToTable("CategoriaDocumento");
+
+            entity.HasKey(x => x.IdCategoria);
+
+            entity.Property(x => x.IdCategoria)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Nombre)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Nombre)
+                .IsUnique();
+
+            entity.Property(x => x.Descripcion)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(x => x.Activo)
+                .IsRequired();
+
+            entity.Property(x => x.FechaCreacion)
+                .IsRequired();
+
+            entity.HasMany(x => x.Documentos)
+                .WithOne(x => x.Categoria)
+                .HasForeignKey(x => x.IdCategoria)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Documento>(entity =>
+        {
+            entity.ToTable("Documento");
+
+            entity.HasKey(x => x.IdDocumento);
+
+            entity.Property(x => x.IdDocumento)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Codigo)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Codigo)
+                .IsUnique();
+
+            entity.Property(x => x.Nombre)
+                .HasMaxLength(250)
+                .IsRequired();
+
+            entity.Property(x => x.Descripcion)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(x => x.VersionActual)
+                .IsRequired()
+                .HasDefaultValue(0);
+
+            entity.Property(x => x.Estado)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.Property(x => x.EstadoProcesamiento)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.FechaRegistro)
+                .IsRequired();
+
+            entity.Property(x => x.UsuarioRegistro)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.HasMany(x => x.Versiones)
+                .WithOne(x => x.Documento)
+                .HasForeignKey(x => x.IdDocumento)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new
+            {
+                x.IdCategoria,
+                x.Estado,
+                x.FechaRegistro
+            });
+        });
+
+        modelBuilder.Entity<DocumentoVersion>(entity =>
+        {
+            entity.ToTable("DocumentoVersion");
+
+            entity.HasKey(x => x.IdVersion);
+
+            entity.Property(x => x.IdVersion)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.NumeroVersion)
+                .IsRequired();
+
+            entity.Property(x => x.NombreArchivo)
+                .HasMaxLength(260)
+                .IsRequired();
+
+            entity.Property(x => x.RutaArchivo)
+                .HasMaxLength(1000)
+                .IsRequired();
+
+            entity.Property(x => x.TamanoArchivo)
+                .IsRequired();
+
+            entity.Property(x => x.HashArchivo)
+                .HasMaxLength(128)
+                .IsRequired();
+
+            entity.Property(x => x.FechaCarga)
+                .IsRequired();
+
+            entity.Property(x => x.UsuarioCarga)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Activo)
+                .IsRequired();
+
+            entity.HasIndex(x => new
+            {
+                x.IdDocumento,
+                x.NumeroVersion
+            })
+            .IsUnique();
+
+            entity.HasIndex(x => new
+            {
+                x.IdDocumento,
+                x.Activo
+            })
+            .HasFilter("[Activo] = 1")
+            .IsUnique();
         });
 
         modelBuilder.Entity<ConfiguracionMemoria>(entity =>
