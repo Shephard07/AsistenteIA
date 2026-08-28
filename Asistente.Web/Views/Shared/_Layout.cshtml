@@ -70,6 +70,22 @@
                                     Configuración IA
                                 </a>
                             </li>   
+
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   asp-controller="DepuracionContexto"
+                                   asp-action="Index">
+                                    Depuración
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   asp-controller="ConfiguracionMemoria"
+                                   asp-action="Index">
+                                    Memoria
+                                </a>
+                            </li>
                         }
 
                         @if (User.IsInRole("Administrador") ||

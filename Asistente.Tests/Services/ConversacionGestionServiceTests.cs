@@ -189,4 +189,45 @@ public class ConversacionGestionServiceTests
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
     }
+
+    [Fact]
+    public async Task ObtenerDetalleAsync_Debe_Devolver_Mensajes_Ordenados_De_Conversacion_Del_Usuario()
+    {
+        var conversacion = new Conversacion(1, 99);
+
+        conversacion.AgregarMensaje(new Mensaje(
+            RolMensaje.Usuario,
+            "Necesito ayuda con inventarios."));
+
+        conversacion.AgregarMensaje(new Mensaje(
+            RolMensaje.Asistente,
+            "Claro, puedo ayudarte con inventarios."));
+
+        _repositoryMock
+            .Setup(repository => repository.ObtenerPorIdYUsuarioAsync(
+                10,
+                99,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(conversacion);
+
+        var service = new ConversacionGestionService(
+            _repositoryMock.Object);
+
+        var resultado = await service.ObtenerDetalleAsync(
+            10,
+            99);
+
+        Assert.Equal("Nueva conversación", resultado.Titulo);
+        Assert.Equal(2, resultado.TotalMensajes);
+
+        var mensajes = resultado.Mensajes.ToArray();
+
+        Assert.Equal(2, mensajes.Length);
+        Assert.Equal(
+            "Necesito ayuda con inventarios.",
+            mensajes[0].Contenido);
+        Assert.Equal(
+            "Claro, puedo ayudarte con inventarios.",
+            mensajes[1].Contenido);
+    }
 }

@@ -17,14 +17,20 @@ namespace Asistente.API.Controllers;
 public class ConversacionesController : ControllerBase
 {
     private readonly IEnviarMensajeService _enviarMensajeService;
-    private readonly IConversacionGestionService _conversacionGestionService;
+    private readonly IConversacionGestionService
+        _conversacionGestionService;
+
+    private readonly IConfiguracionMemoriaService
+        _configuracionMemoriaService;
 
     public ConversacionesController(
         IEnviarMensajeService enviarMensajeService,
-        IConversacionGestionService conversacionGestionService)
+        IConversacionGestionService conversacionGestionService,
+        IConfiguracionMemoriaService configuracionMemoriaService)
     {
         _enviarMensajeService = enviarMensajeService;
         _conversacionGestionService = conversacionGestionService;
+        _configuracionMemoriaService = configuracionMemoriaService;
     }
 
     [HttpGet]
@@ -35,17 +41,46 @@ public class ConversacionesController : ControllerBase
         ActionResult<IReadOnlyCollection<ConversacionHistorialDto>>> Listar(
         [FromQuery] string? terminoBusqueda,
         [FromQuery] bool incluirArchivadas = false,
-        [FromQuery] int cantidadMaxima = 20,
+        [FromQuery] int? cantidadMaxima = null,
         CancellationToken cancellationToken = default)
     {
+        var configuracionMemoria = await _configuracionMemoriaService
+            .ObtenerActivaAsync(cancellationToken);
+
+        var limiteConversaciones = cantidadMaxima.HasValue
+            ? Math.Min(
+                cantidadMaxima.Value,
+                configuracionMemoria.CantidadConversacionesVisibles)
+            : configuracionMemoria.CantidadConversacionesVisibles;
+
         var conversaciones = await _conversacionGestionService.ListarAsync(
             ContextoClienteFactory.ObtenerIdUsuario(HttpContext),
             terminoBusqueda,
             incluirArchivadas,
-            cantidadMaxima,
+            limiteConversaciones,
             cancellationToken);
 
         return Ok(conversaciones);
+    }
+
+    [HttpGet("{idConversacion:int}")]
+    [ProducesResponseType(
+        typeof(ConversacionDetalleDto),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ErrorResponse),
+        StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ConversacionDetalleDto>> ObtenerDetalle(
+        int idConversacion,
+        CancellationToken cancellationToken)
+    {
+        var conversacion = await _conversacionGestionService
+            .ObtenerDetalleAsync(
+                idConversacion,
+                ContextoClienteFactory.ObtenerIdUsuario(HttpContext),
+                cancellationToken);
+
+        return Ok(conversacion);
     }
 
     [HttpPatch("{idConversacion:int}/titulo")]

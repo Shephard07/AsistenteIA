@@ -27,6 +27,18 @@ public static class DependencyInjection
         services.AddScoped<IConversacionGestionService,ConversacionGestionService>();
         services.AddScoped<IResumenConversacionService,ResumenConversacionService>();
 
+        services.AddScoped<
+    IGeneradorTituloConversacionService,
+    GeneradorTituloConversacionService>();
+
+        services.AddScoped<
+    IContextoConversacionalService,
+    ContextoConversacionalService>();
+
+        services.AddScoped<
+    IDepuracionContextoService,
+    DepuracionContextoService>();
+
         services.AddValidatorsFromAssemblyContaining<
             EnviarMensajeRequestValidator>();
 

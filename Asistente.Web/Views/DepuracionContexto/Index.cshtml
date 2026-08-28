@@ -1,0 +1,144 @@
+﻿@model Asistente.Web.Models.AdministracionViewModel
+
+@{
+    ViewData["Title"] = "Depuración de contexto";
+}
+
+<div id="depuracionContextoPage"
+     data-api-base-url="@Model.ApiBaseUrl">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Depuración de contexto</h1>
+        <p class="text-muted mb-0">
+            Inspecciona el contexto que se enviaría al modelo sin consultar Ollama.
+        </p>
+    </div>
+
+    <div id="mensajeDepuracion"
+         class="alert d-none"
+         role="alert"></div>
+
+    <section class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-9">
+                    <label for="selectorConversacionDepuracion"
+                           class="form-label">
+                        Conversación
+                    </label>
+
+                    <select id="selectorConversacionDepuracion"
+                            class="form-select">
+                        <option>Cargando conversaciones...</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <button id="btnActualizarDepuracion"
+                            type="button"
+                            class="btn btn-outline-primary w-100">
+                        Actualizar contexto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="contenidoDepuracion" class="d-none">
+        <section class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1">
+                            Mensajes de contexto
+                        </p>
+                        <p id="cantidadMensajesContexto"
+                           class="h3 mb-0"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1">
+                            Mensajes enviados
+                        </p>
+                        <p id="cantidadMensajesEnviados"
+                           class="h3 mb-0"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1">
+                            Tokens estimados
+                        </p>
+                        <p id="tokensEstimados"
+                           class="h3 mb-0"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1">
+                            Tiempo de construcción
+                        </p>
+                        <p class="h3 mb-0">
+                            <span id="tiempoConstruccion"></span> ms
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h2 id="tituloConversacionDepuracion"
+                    class="h5 mb-1"></h2>
+
+                <p class="text-muted mb-0">
+                    Modelo: <span id="modeloIADepuracion"></span>
+                </p>
+            </div>
+        </section>
+
+        <section class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Resumen conversacional</h2>
+
+                <pre id="resumenContextoDepuracion"
+                     class="bg-light border rounded p-3 mb-0 text-wrap"
+                     style="white-space: pre-wrap;"></pre>
+            </div>
+        </section>
+
+        <section class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Mensajes seleccionados</h2>
+
+                <div id="mensajesContextoDepuracion"
+                     class="d-flex flex-column gap-3"></div>
+            </div>
+        </section>
+
+        <section class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Prompt final enviado al modelo</h2>
+
+                <pre id="promptFinalDepuracion"
+                     class="bg-dark text-light rounded p-3 mb-0"
+                     style="max-height: 650px; overflow: auto; white-space: pre-wrap;"></pre>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/depuracion-contexto.js"
+            asp-append-version="true"></script>
+}

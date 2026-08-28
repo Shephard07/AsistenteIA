@@ -15,8 +15,18 @@ public class EnviarMensajeService : IEnviarMensajeService
     private readonly IMensajeService _mensajeService;
     private readonly IAsistenteService _asistenteService;
     private readonly IPromptSistemaService _promptSistemaService;
-    private readonly IConfiguracionMemoriaService _configuracionMemoriaService;
-    private readonly IResumenConversacionService _resumenConversacionService;
+    private readonly IConfiguracionMemoriaService
+        _configuracionMemoriaService;
+
+    private readonly IContextoConversacionalService
+        _contextoConversacionalService;
+
+    private readonly IGeneradorTituloConversacionService
+        _generadorTituloConversacionService;
+
+    private readonly IResumenConversacionService
+        _resumenConversacionService;
+
     private readonly IPromptBuilder _promptBuilder;
     private readonly IAIProvider _aiProvider;
     private readonly IValidator<EnviarMensajeRequestDto> _validator;
@@ -27,9 +37,12 @@ public class EnviarMensajeService : IEnviarMensajeService
         IAsistenteService asistenteService,
         IPromptSistemaService promptSistemaService,
         IConfiguracionMemoriaService configuracionMemoriaService,
-        IResumenConversacionService resumenConversacionService,
+        IContextoConversacionalService contextoConversacionalService,
+        IGeneradorTituloConversacionService
+            generadorTituloConversacionService,
         IPromptBuilder promptBuilder,
         IAIProvider aiProvider,
+        IResumenConversacionService resumenConversacionService,
         IValidator<EnviarMensajeRequestDto> validator)
     {
         _conversacionService = conversacionService;
@@ -37,9 +50,12 @@ public class EnviarMensajeService : IEnviarMensajeService
         _asistenteService = asistenteService;
         _promptSistemaService = promptSistemaService;
         _configuracionMemoriaService = configuracionMemoriaService;
-        _resumenConversacionService = resumenConversacionService;
+        _contextoConversacionalService = contextoConversacionalService;
+        _generadorTituloConversacionService =
+            generadorTituloConversacionService;
         _promptBuilder = promptBuilder;
         _aiProvider = aiProvider;
+        _resumenConversacionService = resumenConversacionService;
         _validator = validator;
     }
 
@@ -97,7 +113,7 @@ public class EnviarMensajeService : IEnviarMensajeService
             })
             .ToList();
 
-        var mensajesContexto = SeleccionarMensajesContexto(
+        var contexto = _contextoConversacionalService.Construir(
             mensajes,
             conversacion.ResumenContexto,
             configuracionMemoria);
@@ -105,8 +121,8 @@ public class EnviarMensajeService : IEnviarMensajeService
         var chatRequest = _promptBuilder.ConstruirSolicitudChat(
             asistente,
             promptActivo,
-            mensajesContexto,
-            conversacion.ResumenContexto);
+            contexto.Mensajes,
+            contexto.ResumenContexto);
 
         var respuestaIA = await _aiProvider.SendAsync(
             chatRequest,
@@ -118,6 +134,12 @@ public class EnviarMensajeService : IEnviarMensajeService
             respuestaIA.Contenido,
             respuestaIA.TiempoRespuestaMs,
             cancellationToken);
+
+        await _generadorTituloConversacionService
+            .GenerarSiEsNecesarioAsync(
+                conversacion,
+                asistente,
+                cancellationToken);
 
         await _resumenConversacionService.ActualizarSiEsNecesarioAsync(
             conversacion,
@@ -131,53 +153,5 @@ public class EnviarMensajeService : IEnviarMensajeService
             Respuesta = respuestaIA.Contenido,
             TiempoRespuestaMs = respuestaIA.TiempoRespuestaMs
         };
-    }
-
-    private static IReadOnlyCollection<MensajeDto>
-        SeleccionarMensajesContexto(
-            IReadOnlyCollection<MensajeDto> mensajes,
-            string? resumenContexto,
-            ConfiguracionMemoriaDto configuracion)
-    {
-        var tokensResumen = string.IsNullOrWhiteSpace(resumenContexto)
-            ? 0
-            : EstimarTokens(resumenContexto);
-
-        var tokensDisponibles = Math.Max(
-            0,
-            configuracion.MaximoTokensContexto - tokensResumen);
-
-        var mensajesSeleccionados = new List<MensajeDto>();
-        var tokensUsados = 0;
-
-        foreach (var mensaje in mensajes
-            .OrderByDescending(mensaje => mensaje.FechaHora))
-        {
-            if (mensajesSeleccionados.Count >=
-                configuracion.MaximoMensajesContexto)
-            {
-                break;
-            }
-
-            var tokensMensaje = EstimarTokens(mensaje.Contenido);
-
-            if (mensajesSeleccionados.Count > 0 &&
-                tokensUsados + tokensMensaje > tokensDisponibles)
-            {
-                continue;
-            }
-
-            mensajesSeleccionados.Add(mensaje);
-            tokensUsados += tokensMensaje;
-        }
-
-        return mensajesSeleccionados
-            .OrderBy(mensaje => mensaje.FechaHora)
-            .ToArray();
-    }
-
-    private static int EstimarTokens(string contenido)
-    {
-        return Math.Max(1, (contenido.Length + 3) / 4);
     }
 }

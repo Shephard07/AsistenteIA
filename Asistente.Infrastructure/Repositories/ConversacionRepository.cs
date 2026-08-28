@@ -68,9 +68,16 @@ public class ConversacionRepository : IConversacionRepository
         {
             var termino = terminoBusqueda.Trim();
 
+            var coincideTituloPredeterminado =
+                "Nueva conversación".Contains(
+                    termino,
+                    StringComparison.OrdinalIgnoreCase);
+
             consulta = consulta.Where(conversacion =>
-                conversacion.Titulo != null &&
-                conversacion.Titulo.Contains(termino));
+                (conversacion.Titulo != null &&
+                 conversacion.Titulo.Contains(termino)) ||
+                (conversacion.Titulo == null &&
+                 coincideTituloPredeterminado));
         }
 
         return await consulta

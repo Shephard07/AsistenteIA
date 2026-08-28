@@ -18,19 +18,29 @@ public class EnviarMensajeServiceTests
     private readonly Mock<IMensajeService> _mensajeServiceMock = new();
     private readonly Mock<IAsistenteService> _asistenteServiceMock = new();
     private readonly Mock<IPromptSistemaService> _promptSistemaServiceMock = new();
+
     private readonly Mock<IConfiguracionMemoriaService>
         _configuracionMemoriaServiceMock = new();
+
+    private readonly Mock<IContextoConversacionalService>
+        _contextoConversacionalServiceMock = new();
+
+    private readonly Mock<IGeneradorTituloConversacionService>
+        _generadorTituloConversacionServiceMock = new();
+
+    private readonly Mock<IResumenConversacionService>
+        _resumenConversacionServiceMock = new();
+
     private readonly Mock<IPromptBuilder> _promptBuilderMock = new();
     private readonly Mock<IAIProvider> _aiProviderMock = new();
     private readonly EnviarMensajeRequestValidator _validator = new();
-
-    private readonly Mock<IResumenConversacionService>_resumenConversacionServiceMock = new();
 
     [Fact]
     public async Task EjecutarAsync_Debe_Registrar_Mensajes_Y_Devolver_Respuesta()
     {
         var conversacion = new Conversacion();
         ConfigurarAsistenteYPromptActivos();
+        ConfigurarRegistroMensajes();
 
         _conversacionServiceMock
             .Setup(service => service.ObtenerOCrearAsync(
@@ -39,8 +49,6 @@ public class EnviarMensajeServiceTests
                 IdUsuarioPrueba,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(conversacion);
-
-        ConfigurarRegistroMensajes();
 
         _aiProviderMock
             .Setup(provider => provider.SendAsync(
@@ -89,14 +97,6 @@ public class EnviarMensajeServiceTests
                 250,
                 It.IsAny<CancellationToken>()),
             Times.Once);
-
-        _resumenConversacionServiceMock
-        .Setup(service => service.ActualizarSiEsNecesarioAsync(
-            It.IsAny<Conversacion>(),
-            It.IsAny<AsistenteDto>(),
-            It.IsAny<ConfiguracionMemoriaDto>(),
-            It.IsAny<CancellationToken>()))
-        .Returns(Task.CompletedTask);
     }
 
     [Fact]
@@ -130,6 +130,7 @@ public class EnviarMensajeServiceTests
     {
         var conversacion = new Conversacion();
         ConfigurarAsistenteYPromptActivos();
+        ConfigurarRegistroMensajes();
 
         _conversacionServiceMock
             .Setup(service => service.ObtenerOCrearAsync(
@@ -138,8 +139,6 @@ public class EnviarMensajeServiceTests
                 IdUsuarioPrueba,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(conversacion);
-
-        ConfigurarRegistroMensajes();
 
         _aiProviderMock
             .Setup(provider => provider.SendAsync(
@@ -175,8 +174,7 @@ public class EnviarMensajeServiceTests
 
         conversacion.AgregarMensaje(new Mensaje(
             RolMensaje.Usuario,
-            "Primer mensaje de la conversación.",
-            null));
+            "Primer mensaje de la conversación."));
 
         conversacion.AgregarMensaje(new Mensaje(
             RolMensaje.Asistente,
@@ -185,8 +183,7 @@ public class EnviarMensajeServiceTests
 
         conversacion.AgregarMensaje(new Mensaje(
             RolMensaje.Usuario,
-            "Segundo mensaje de la conversación.",
-            null));
+            "Segundo mensaje de la conversación."));
 
         conversacion.ActualizarResumenContexto(
             "El usuario solicita apoyo para organizar inventarios.");
@@ -266,8 +263,7 @@ public class EnviarMensajeServiceTests
         Assert.Equal(
             "El usuario solicita apoyo para organizar inventarios.",
             resumenEnviado);
-    }   
-
+    }
 
     [Fact]
     public async Task EjecutarAsync_Debe_Lanzar_Error_De_Validacion_Con_Mensaje_Vacio()
@@ -341,6 +337,35 @@ public class EnviarMensajeServiceTests
                 Activo = true
             });
 
+        _contextoConversacionalServiceMock
+            .Setup(service => service.Construir(
+                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+                It.IsAny<string?>(),
+                It.IsAny<ConfiguracionMemoriaDto>()))
+            .Returns((
+                IReadOnlyCollection<MensajeDto> mensajes,
+                string? resumenContexto,
+                ConfiguracionMemoriaDto configuracion) =>
+                new ContextoConversacionalService().Construir(
+                    mensajes,
+                    resumenContexto,
+                    configuracion));
+
+        _generadorTituloConversacionServiceMock
+            .Setup(service => service.GenerarSiEsNecesarioAsync(
+                It.IsAny<Conversacion>(),
+                It.IsAny<AsistenteDto>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _resumenConversacionServiceMock
+            .Setup(service => service.ActualizarSiEsNecesarioAsync(
+                It.IsAny<Conversacion>(),
+                It.IsAny<AsistenteDto>(),
+                It.IsAny<ConfiguracionMemoriaDto>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         _promptBuilderMock
             .Setup(builder => builder.ConstruirSolicitudChat(
                 It.IsAny<AsistenteDto>(),
@@ -376,9 +401,11 @@ public class EnviarMensajeServiceTests
             _asistenteServiceMock.Object,
             _promptSistemaServiceMock.Object,
             _configuracionMemoriaServiceMock.Object,
-            _resumenConversacionServiceMock.Object,
+            _contextoConversacionalServiceMock.Object,
+            _generadorTituloConversacionServiceMock.Object,
             _promptBuilderMock.Object,
             _aiProviderMock.Object,
+            _resumenConversacionServiceMock.Object,
             _validator);
     }
 }

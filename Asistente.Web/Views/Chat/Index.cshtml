@@ -7,19 +7,81 @@
 <link rel="stylesheet" href="~/css/chat.css" />
 
 <div class="chat-page" data-api-base-url="@Model.ApiBaseUrl">
+    <aside class="conversation-sidebar">
+        <div class="sidebar-header">
+            <div>
+                <p class="sidebar-eyebrow">CONVERSACIONES</p>
+                <h2>Mi historial</h2>
+            </div>
+
+            <button id="newConversationButton"
+                    type="button"
+                    class="btn btn-primary btn-sm">
+                + Nueva
+            </button>
+        </div>
+
+        <label for="searchConversationInput" class="visually-hidden">
+            Buscar conversación
+        </label>
+
+        <input id="searchConversationInput"
+               type="search"
+               class="form-control"
+               placeholder="Buscar por título..." />
+
+        <div class="form-check form-switch mt-3 mb-2">
+            <input id="showArchivedInput"
+                   class="form-check-input"
+                   type="checkbox" />
+
+            <label class="form-check-label small"
+                   for="showArchivedInput">
+                Mostrar archivadas
+            </label>
+        </div>
+
+        <div id="conversationList"
+             class="conversation-list"
+             aria-live="polite">
+            <p class="text-muted small p-3 mb-0">
+                Cargando conversaciones...
+            </p>
+        </div>
+    </aside>
+
     <section class="chat-card">
         <header class="chat-header">
             <div>
                 <p class="chat-eyebrow">IA LOCAL · OLLAMA</p>
-                <h1>Asistente Inteligente Empresarial</h1>
-                <p class="chat-subtitle">
-                    Consulta información y recibe respuestas generadas localmente.
+                <h1 id="conversationTitle">Nueva conversación</h1>
+                <p id="conversationSubtitle" class="chat-subtitle">
+                    Inicia una consulta para crear una conversación.
                 </p>
             </div>
 
-            <button id="clearButton" type="button" class="btn btn-outline-light">
-                Limpiar conversación
-            </button>
+            <div class="chat-actions">
+                <button id="renameButton"
+                        type="button"
+                        class="btn btn-outline-light btn-sm"
+                        disabled>
+                    Renombrar
+                </button>
+
+                <button id="archiveButton"
+                        type="button"
+                        class="btn btn-outline-light btn-sm"
+                        disabled>
+                    Archivar
+                </button>
+
+                <button id="deleteButton"
+                        type="button"
+                        class="btn btn-outline-light btn-sm"
+                        disabled>
+                    Eliminar
+                </button>
+            </div>
         </header>
 
         <main id="chatMessages" class="chat-messages" aria-live="polite">
@@ -57,4 +119,6 @@
     </section>
 </div>
 
-<script src="~/js/chat.js"></script>
+@section Scripts {
+    <script src="~/js/chat.js" asp-append-version="true"></script>
+}

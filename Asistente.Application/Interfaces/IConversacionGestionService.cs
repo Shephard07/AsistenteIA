@@ -11,6 +11,11 @@ public interface IConversacionGestionService
         int cantidadMaxima,
         CancellationToken cancellationToken = default);
 
+    Task<ConversacionDetalleDto> ObtenerDetalleAsync(
+        int idConversacion,
+        int idUsuario,
+        CancellationToken cancellationToken = default);
+
     Task RenombrarAsync(
         int idConversacion,
         int idUsuario,

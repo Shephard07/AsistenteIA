@@ -43,8 +43,21 @@ public class ConversacionGestionService : IConversacionGestionService
                 cancellationToken);
 
         return conversaciones
-            .Select(ConvertirADto)
+            .Select(ConvertirAHistorialDto)
             .ToArray();
+    }
+
+    public async Task<ConversacionDetalleDto> ObtenerDetalleAsync(
+        int idConversacion,
+        int idUsuario,
+        CancellationToken cancellationToken = default)
+    {
+        var conversacion = await ObtenerDelUsuarioAsync(
+            idConversacion,
+            idUsuario,
+            cancellationToken);
+
+        return ConvertirADetalleDto(conversacion);
     }
 
     public async Task RenombrarAsync(
@@ -135,7 +148,7 @@ public class ConversacionGestionService : IConversacionGestionService
                 "La conversación solicitada no existe.");
     }
 
-    private static ConversacionHistorialDto ConvertirADto(
+    private static ConversacionHistorialDto ConvertirAHistorialDto(
         Conversacion conversacion)
     {
         return new ConversacionHistorialDto
@@ -147,6 +160,35 @@ public class ConversacionGestionService : IConversacionGestionService
             FechaUltimaActividad = conversacion.FechaUltimaActividad,
             TotalMensajes = conversacion.TotalMensajes,
             ResumenContexto = conversacion.ResumenContexto
+        };
+    }
+
+    private static ConversacionDetalleDto ConvertirADetalleDto(
+        Conversacion conversacion)
+    {
+        return new ConversacionDetalleDto
+        {
+            IdConversacion = conversacion.IdConversacion,
+            IdAsistente = conversacion.IdAsistente,
+            Titulo = conversacion.Titulo ?? "Nueva conversación",
+            FechaInicio = conversacion.FechaInicio,
+            FechaFin = conversacion.FechaFin,
+            FechaUltimaActividad = conversacion.FechaUltimaActividad,
+            ResumenContexto = conversacion.ResumenContexto,
+            TotalMensajes = conversacion.TotalMensajes,
+            Estado = conversacion.Estado.ToString(),
+            Mensajes = conversacion.Mensajes
+                .OrderBy(mensaje => mensaje.FechaHora)
+                .Select(mensaje => new MensajeDto
+                {
+                    IdMensaje = mensaje.IdMensaje,
+                    IdConversacion = mensaje.IdConversacion,
+                    Rol = mensaje.Rol.ToString(),
+                    Contenido = mensaje.Contenido,
+                    FechaHora = mensaje.FechaHora,
+                    TiempoRespuestaMs = mensaje.TiempoRespuestaMs
+                })
+                .ToArray()
         };
     }
 

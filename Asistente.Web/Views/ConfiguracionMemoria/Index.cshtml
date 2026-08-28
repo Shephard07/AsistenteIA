@@ -1,0 +1,122 @@
+﻿@model Asistente.Web.Models.AdministracionViewModel
+
+@{
+    ViewData["Title"] = "Configuración de memoria";
+}
+
+<div id="configuracionMemoriaPage"
+     data-api-base-url="@Model.ApiBaseUrl">
+
+    <div class="mb-4">
+        <h1 class="h3 mb-1">Memoria conversacional</h1>
+        <p class="text-muted mb-0">
+            Define cuánto historial y resumen utilizará el asistente al responder.
+        </p>
+    </div>
+
+    <div id="mensajeConfiguracionMemoria"
+         class="alert d-none"
+         role="alert"></div>
+
+    <section class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h5 mb-0">Límites activos</h2>
+
+                <span id="estadoConfiguracionMemoria"
+                      class="badge text-bg-secondary">
+                    Cargando...
+                </span>
+            </div>
+
+            <form id="formConfiguracionMemoria"
+                  class="row g-3">
+
+                <div class="col-md-6">
+                    <label for="maximoMensajesContexto"
+                           class="form-label">
+                        Máximo de mensajes de contexto
+                    </label>
+
+                    <input id="maximoMensajesContexto"
+                           class="form-control"
+                           type="number"
+                           min="2"
+                           max="50"
+                           required />
+
+                    <div class="form-text">
+                        Entre 2 y 50 mensajes recientes.
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="maximoTokensContexto"
+                           class="form-label">
+                        Máximo de tokens de contexto
+                    </label>
+
+                    <input id="maximoTokensContexto"
+                           class="form-control"
+                           type="number"
+                           min="256"
+                           max="16000"
+                           required />
+
+                    <div class="form-text">
+                        Entre 256 y 16000 tokens estimados.
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="longitudResumen"
+                           class="form-label">
+                        Longitud máxima del resumen
+                    </label>
+
+                    <input id="longitudResumen"
+                           class="form-control"
+                           type="number"
+                           min="100"
+                           max="8000"
+                           required />
+
+                    <div class="form-text">
+                        Entre 100 y 8000 caracteres.
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="cantidadConversacionesVisibles"
+                           class="form-label">
+                        Conversaciones visibles en el historial
+                    </label>
+
+                    <input id="cantidadConversacionesVisibles"
+                           class="form-control"
+                           type="number"
+                           min="1"
+                           max="100"
+                           required />
+
+                    <div class="form-text">
+                        Entre 1 y 100 conversaciones.
+                    </div>
+                </div>
+
+                <div class="col-12 text-end mt-4">
+                    <button id="btnGuardarConfiguracionMemoria"
+                            type="submit"
+                            class="btn btn-primary">
+                        Guardar configuración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/configuracion-memoria.js"
+            asp-append-version="true"></script>
+}
