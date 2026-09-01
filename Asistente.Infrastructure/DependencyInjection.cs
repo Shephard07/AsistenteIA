@@ -49,6 +49,16 @@ public static class DependencyInjection
         services.AddScoped<ICategoriaDocumentoRepository, CategoriaDocumentoRepository>();
         services.AddScoped<IDocumentoRepository, DocumentoRepository>();
 
+        services.AddScoped<
+    IDocumentoProcesadoRepository,
+    DocumentoProcesadoRepository>();
+
+        services.AddScoped<
+    IProcesadorDocumentoService,
+    ProcesadorDocumentoService>();
+
+        services.AddHostedService<ProcesamientoDocumentosBackgroundService>();
+
         services.AddScoped<IPasswordService, PasswordService>();
 
         services.Configure<ConfiguracionGestorDocumental>(
@@ -58,6 +68,37 @@ public static class DependencyInjection
         services.AddScoped<
             IAlmacenamientoDocumentoService,
             AlmacenamientoDocumentoService>();
+
+        services.AddScoped<
+    IExtractorTextoDocumento,
+    ExtractorTextoPdfService>();
+
+
+        services.AddSingleton<
+            IConfiguracionProcesamientoDocumento,
+            ConfiguracionProcesamientoDocumentoService>();
+
+        services.AddOptions<ProcesamientoDocumentalOptions>()
+    .Bind(configuration.GetSection(
+        ProcesamientoDocumentalOptions.SectionName))
+    .Validate(
+        options => options.TamanoMaximoChunk >= 200,
+        "El tamaño máximo del chunk debe ser de al menos 200 caracteres.")
+    .Validate(
+        options => options.LongitudMinimaChunk > 0 &&
+            options.LongitudMinimaChunk <= options.TamanoMaximoChunk,
+        "La longitud mínima debe ser mayor que cero y no superar el tamaño máximo.")
+    .Validate(
+        options => options.SolapamientoChunk >= 0 &&
+            options.SolapamientoChunk < options.TamanoMaximoChunk,
+        "El solapamiento debe ser mayor o igual a cero y menor que el tamaño máximo.")
+    .Validate(
+        options => options.FrecuenciaSegundos >= 5,
+        "La frecuencia debe ser de al menos 5 segundos.")
+    .Validate(
+        options => options.MaximoDocumentosPorCiclo > 0,
+        "La cantidad máxima de documentos por ciclo debe ser mayor que cero.")
+    .ValidateOnStart();
 
         services.AddHttpClient<IAIProvider, OllamaService>(
             (serviceProvider, httpClient) =>
@@ -73,5 +114,7 @@ public static class DependencyInjection
             });
 
         return services;
+
+
     }
 }

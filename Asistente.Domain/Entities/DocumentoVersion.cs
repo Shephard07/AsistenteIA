@@ -25,6 +25,8 @@ public class DocumentoVersion
 
     public bool Activo { get; private set; }
 
+    public DocumentoProcesado? Procesamiento { get; private set; }
+
     private DocumentoVersion()
     {
     }

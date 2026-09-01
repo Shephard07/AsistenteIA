@@ -1,4 +1,5 @@
-﻿using Asistente.Application.DTOs;
+﻿//DocumentoService.cs
+using Asistente.Application.DTOs;
 using Asistente.Application.Interfaces;
 using Asistente.Domain.Entities;
 using Asistente.Domain.Enums;
@@ -546,6 +547,12 @@ public class DocumentoService : IDocumentoService
     private static DocumentoDetalleDto MapearDetalle(
         Documento documento)
     {
+
+        var versionActual = documento.Versiones.FirstOrDefault(
+    version => version.Activo);
+
+        var procesamiento = versionActual?.Procesamiento;
+
         return new DocumentoDetalleDto
         {
             IdDocumento = documento.IdDocumento,
@@ -563,6 +570,20 @@ public class DocumentoService : IDocumentoService
 
             FechaRegistro = documento.FechaRegistro,
             UsuarioRegistro = documento.UsuarioRegistro,
+
+            ProcesamientoActual = new ProcesamientoDocumentoDto
+            {
+                IdVersionDocumento = versionActual?.IdVersion ?? 0,
+                Estado = procesamiento?.Estado.ToString()
+        ?? documento.EstadoProcesamiento.ToString(),
+
+                FechaInicio = procesamiento?.FechaInicio,
+                FechaFin = procesamiento?.FechaFin,
+                TotalPaginas = procesamiento?.TotalPaginas ?? 0,
+                TotalCaracteres = procesamiento?.TotalCaracteres ?? 0,
+                TotalChunks = procesamiento?.TotalChunks ?? 0,
+                Observaciones = procesamiento?.Observaciones ?? string.Empty
+            },
 
             Versiones = documento.Versiones
                 .OrderByDescending(version => version.NumeroVersion)

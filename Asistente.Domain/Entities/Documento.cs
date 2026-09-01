@@ -114,6 +114,8 @@ public class Documento
         version.Activar();
         Versiones.Add(version);
         VersionActual = version.NumeroVersion;
+        EstadoProcesamiento =
+            EstadoProcesamientoDocumento.PendienteProcesamiento;
     }
 
     public void Activar()
@@ -147,6 +149,12 @@ public class Documento
     public void Eliminar()
     {
         Estado = EstadoDocumento.Eliminado;
+    }
+
+    public void ActualizarEstadoProcesamiento(
+    EstadoProcesamientoDocumento estado)
+    {
+        EstadoProcesamiento = estado;
     }
 
     private static string ValidarTextoObligatorio(

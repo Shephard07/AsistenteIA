@@ -1,7 +1,9 @@
-﻿// EstadoProcesamientoDocumento.cs
-namespace Asistente.Domain.Enums;
+﻿namespace Asistente.Domain.Enums;
 
 public enum EstadoProcesamientoDocumento
 {
-    PendienteProcesamiento
+    PendienteProcesamiento = 0,
+    EnProceso = 1,
+    Procesado = 2,
+    Error = 3
 }

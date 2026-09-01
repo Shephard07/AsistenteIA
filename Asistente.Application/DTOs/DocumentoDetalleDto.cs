@@ -25,6 +25,9 @@ public class DocumentoDetalleDto
 
     public string UsuarioRegistro { get; init; } = string.Empty;
 
+    public ProcesamientoDocumentoDto ProcesamientoActual { get; init; }
+    = new();
+
     public IReadOnlyCollection<DocumentoVersionDto> Versiones { get; init; }
         = Array.Empty<DocumentoVersionDto>();
 }

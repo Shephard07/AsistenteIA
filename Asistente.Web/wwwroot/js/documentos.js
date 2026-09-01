@@ -48,6 +48,24 @@ const metadatosDetalleDocumento = document.getElementById(
 const descripcionDetalleDocumento = document.getElementById(
     "descripcionDetalleDocumento");
 
+const estadoProcesamientoDetalleDocumento = document.getElementById(
+    "estadoProcesamientoDetalleDocumento");
+
+const totalPaginasProcesamiento = document.getElementById(
+    "totalPaginasProcesamiento");
+
+const totalCaracteresProcesamiento = document.getElementById(
+    "totalCaracteresProcesamiento");
+
+const totalChunksProcesamiento = document.getElementById(
+    "totalChunksProcesamiento");
+
+const fechasProcesamiento = document.getElementById(
+    "fechasProcesamiento");
+
+const observacionesProcesamiento = document.getElementById(
+    "observacionesProcesamiento");
+
 const versionesDocumentoBody = document.getElementById(
     "versionesDocumentoBody");
 
@@ -146,6 +164,72 @@ function crearEtiquetaEstado(estado) {
         <span class="badge ${clases[estado] ?? "text-bg-secondary"}">
             ${escaparHtml(estado)}
         </span>`;
+}
+
+function crearEtiquetaEstadoProcesamiento(estado) {
+    const estilos = {
+        PendienteProcesamiento: {
+            clase: "bg-secondary text-white",
+            texto: "Pendiente"
+        },
+        EnProceso: {
+            clase: "bg-info text-dark",
+            texto: "En proceso"
+        },
+        Procesado: {
+            clase: "bg-success text-white",
+            texto: "Procesado"
+        },
+        Error: {
+            clase: "bg-danger text-white",
+            texto: "Error"
+        }
+    };
+
+    const opcion = estilos[estado] ?? {
+        clase: "bg-secondary text-white",
+        texto: estado || "No disponible"
+    };
+
+    return `
+        <span class="badge ${opcion.clase}">
+            ${escaparHtml(opcion.texto)}
+        </span>`;
+}
+
+function formatearNumero(valor) {
+    return new Intl.NumberFormat("es-PE").format(valor ?? 0);
+}
+
+function renderizarProcesamientoDocumento(procesamiento) {
+    const datos = procesamiento ?? {};
+    const estado = datos.estado || "PendienteProcesamiento";
+
+    estadoProcesamientoDetalleDocumento.innerHTML =
+        crearEtiquetaEstadoProcesamiento(estado);
+
+    totalPaginasProcesamiento.textContent =
+        formatearNumero(datos.totalPaginas);
+
+    totalCaracteresProcesamiento.textContent =
+        formatearNumero(datos.totalCaracteres);
+
+    totalChunksProcesamiento.textContent =
+        formatearNumero(datos.totalChunks);
+
+    const inicio = datos.fechaInicio
+        ? formatearFecha(datos.fechaInicio)
+        : "No iniciado";
+
+    const fin = datos.fechaFin
+        ? formatearFecha(datos.fechaFin)
+        : "Pendiente";
+
+    fechasProcesamiento.textContent =
+        `Inicio: ${inicio} · Fin: ${fin}`;
+
+    observacionesProcesamiento.textContent =
+        datos.observaciones || "Sin observaciones.";
 }
 
 async function obtenerMensajeError(response) {
@@ -312,6 +396,10 @@ function crearFilaDocumento(documento) {
             <td>${escaparHtml(documento.categoria)}</td>
             <td>v${documento.versionActual}</td>
             <td>${crearEtiquetaEstado(documento.estado)}</td>
+            <td>
+                ${crearEtiquetaEstadoProcesamiento(
+                    documento.estadoProcesamiento)}
+            </td>
             <td>${formatearFecha(documento.fechaRegistro)}</td>
             <td class="text-end text-nowrap">${acciones}</td>
         </tr>`;
@@ -498,8 +586,10 @@ async function cargarDetalleDocumento(idDocumento) {
         metadatosDetalleDocumento.textContent =
             `Categoría: ${documentoSeleccionado.categoria} · ` +
             `Versión actual: ${documentoSeleccionado.versionActual} · ` +
-            `Estado: ${documentoSeleccionado.estado} · ` +
-            `Procesamiento: ${documentoSeleccionado.estadoProcesamiento}`;
+            `Estado: ${documentoSeleccionado.estado}`;
+
+        renderizarProcesamientoDocumento(
+            documentoSeleccionado.procesamientoActual);
 
         descripcionDetalleDocumento.textContent =
             documentoSeleccionado.descripcion ||
@@ -566,7 +656,14 @@ btnLimpiarFiltrosDocumentos.addEventListener("click", async () => {
     await cargarDocumentos();
 });
 
-btnActualizarDocumentos.addEventListener("click", cargarDocumentos);
+btnActualizarDocumentos.addEventListener("click", async () => {
+    await cargarDocumentos();
+
+    if (documentoSeleccionado) {
+        await cargarDetalleDocumento(
+            documentoSeleccionado.idDocumento);
+    }
+});
 
 documentosBody.addEventListener("click", async event => {
     const boton = event.target.closest("button[data-accion]");

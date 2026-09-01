@@ -49,6 +49,12 @@ public class AsistenteIADbContext : DbContext
     public DbSet<DocumentoVersion> DocumentosVersiones
         => Set<DocumentoVersion>();
 
+    public DbSet<DocumentoProcesado> DocumentosProcesados
+    => Set<DocumentoProcesado>();
+
+    public DbSet<DocumentoChunk> DocumentosChunks
+        => Set<DocumentoChunk>();
+
     public DbSet<ConfiguracionMemoria> ConfiguracionesMemoria
     => Set<ConfiguracionMemoria>();
 
@@ -624,5 +630,120 @@ public class AsistenteIADbContext : DbContext
                 Activo = true
             });
         });
+
+        modelBuilder.Entity<DocumentoProcesado>(entity =>
+        {
+            entity.ToTable("DocumentoProcesado");
+
+            entity.HasKey(x => x.IdDocumentoProcesado);
+
+            entity.Property(x => x.IdDocumentoProcesado)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.FechaInicio);
+
+            entity.Property(x => x.FechaFin);
+
+            entity.Property(x => x.Estado)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.TotalPaginas)
+                .IsRequired();
+
+            entity.Property(x => x.TotalCaracteres)
+                .IsRequired();
+
+            entity.Property(x => x.TotalChunks)
+                .IsRequired();
+
+            entity.Property(x => x.Observaciones)
+                .HasMaxLength(2000)
+                .IsRequired();
+
+            entity.HasOne(x => x.VersionDocumento)
+                .WithOne(x => x.Procesamiento)
+                .HasForeignKey<DocumentoProcesado>(
+                    x => x.IdVersionDocumento)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(x => x.Chunks)
+                .WithOne(x => x.DocumentoProcesado)
+                .HasForeignKey(x => x.IdDocumentoProcesado)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => x.IdVersionDocumento)
+                .IsUnique();
+
+            entity.HasIndex(x => new
+            {
+                x.Estado,
+                x.FechaInicio
+            });
+        });
+
+        modelBuilder.Entity<DocumentoChunk>(entity =>
+        {
+            entity.ToTable("DocumentoChunk");
+
+            entity.HasKey(x => x.IdChunk);
+
+            entity.Property(x => x.IdChunk)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.IdDocumento)
+                .IsRequired();
+
+            entity.Property(x => x.IdVersionDocumento)
+                .IsRequired();
+
+            entity.Property(x => x.IdCategoria)
+                .IsRequired();
+
+            entity.Property(x => x.NumeroChunk)
+                .IsRequired();
+
+            entity.Property(x => x.PaginaInicial)
+                .IsRequired();
+
+            entity.Property(x => x.PaginaFinal)
+                .IsRequired();
+
+            entity.Property(x => x.Texto)
+                .HasColumnType("nvarchar(max)")
+                .IsRequired();
+
+            entity.Property(x => x.TotalCaracteres)
+                .IsRequired();
+
+            entity.Property(x => x.Orden)
+                .IsRequired();
+
+            entity.HasIndex(x => new
+            {
+                x.IdDocumentoProcesado,
+                x.NumeroChunk
+            })
+            .IsUnique();
+
+            entity.HasIndex(x => new
+            {
+                x.IdDocumentoProcesado,
+                x.Orden
+            })
+            .IsUnique();
+
+            entity.HasIndex(x => x.IdVersionDocumento);
+
+            entity.HasIndex(x => new
+            {
+                x.IdDocumento,
+                x.IdCategoria
+            });
+        });
     }
+
+
+
 }

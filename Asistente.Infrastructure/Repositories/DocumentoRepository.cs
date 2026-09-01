@@ -1,4 +1,5 @@
-﻿using Asistente.Domain.Entities;
+﻿//DocumentoRepository.cs
+using Asistente.Domain.Entities;
 using Asistente.Domain.Enums;
 using Asistente.Domain.Interfaces;
 using Asistente.Infrastructure.Persistence;
@@ -75,6 +76,7 @@ public class DocumentoRepository : IDocumentoRepository
         return _context.Documentos
             .Include(documento => documento.Categoria)
             .Include(documento => documento.Versiones)
+    .ThenInclude(version => version.Procesamiento)
             .FirstOrDefaultAsync(
                 documento => documento.IdDocumento == idDocumento,
                 cancellationToken);
