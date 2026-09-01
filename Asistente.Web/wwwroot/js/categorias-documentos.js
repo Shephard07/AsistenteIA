@@ -110,8 +110,8 @@ async function solicitar(url, opciones = {}) {
 
 function crearFilaCategoria(categoria) {
     const estado = categoria.activo
-        ? "<span class='badge text-bg-success'>Activa</span>"
-        : "<span class='badge text-bg-secondary'>Inactiva</span>";
+        ? "<span class='badge bg-success text-white'>Activa</span>"
+        : "<span class='badge bg-secondary text-white'>Inactiva</span>";
 
     const textoAccion = categoria.activo
         ? "Desactivar"
