@@ -78,6 +78,21 @@ public static class DependencyInjection
             IConfiguracionProcesamientoDocumento,
             ConfiguracionProcesamientoDocumentoService>();
 
+        services.AddHttpClient<
+    IEmbeddingProvider,
+    OllamaEmbeddingProvider>(
+    (serviceProvider, httpClient) =>
+    {
+        var ollamaOptions = serviceProvider
+            .GetRequiredService<IOptions<OllamaOptions>>()
+            .Value;
+
+        httpClient.BaseAddress = new Uri(
+            ollamaOptions.BaseUrl.TrimEnd('/') + "/");
+
+        httpClient.Timeout = Timeout.InfiniteTimeSpan;
+    });
+
         services.AddOptions<ProcesamientoDocumentalOptions>()
     .Bind(configuration.GetSection(
         ProcesamientoDocumentalOptions.SectionName))
@@ -117,4 +132,6 @@ public static class DependencyInjection
 
 
     }
+
+
 }
