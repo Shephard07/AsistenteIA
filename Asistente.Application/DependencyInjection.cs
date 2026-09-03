@@ -53,6 +53,10 @@ public static class DependencyInjection
         services.AddScoped<IDocumentoService, DocumentoService>();
 
         services.AddScoped<
+    IIndexadorDocumentoService,
+    IndexadorDocumentoService>();
+
+        services.AddScoped<
     INormalizadorContenidoDocumento,
     NormalizadorContenidoDocumentoService>();
 

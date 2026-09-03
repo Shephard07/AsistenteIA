@@ -137,6 +137,20 @@ public static class DependencyInjection
             httpClient.Timeout = Timeout.InfiniteTimeSpan;
         });
 
+        services.AddOptions<IndexacionDocumentalOptions>()
+    .Bind(configuration.GetSection(
+        IndexacionDocumentalOptions.SectionName))
+    .Validate(
+        options => options.FrecuenciaSegundos >= 5,
+        "La frecuencia de indexación debe ser de al menos 5 segundos.")
+    .Validate(
+        options => options.MaximoDocumentosPorCiclo > 0,
+        "La cantidad máxima de documentos por ciclo debe ser mayor que cero.")
+    .ValidateOnStart();
+
+        services.AddHostedService<
+            IndexacionDocumentosBackgroundService>();
+
         services.AddOptions<ProcesamientoDocumentalOptions>()
     .Bind(configuration.GetSection(
         ProcesamientoDocumentalOptions.SectionName))
@@ -173,8 +187,6 @@ public static class DependencyInjection
             });
 
         return services;
-
-
     }
 
 
