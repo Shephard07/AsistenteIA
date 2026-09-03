@@ -71,15 +71,31 @@ public class RecuperacionContextoRagService
         var contenido = new StringBuilder();
 
         contenido.AppendLine(
-            "Contexto documental recuperado para responder al usuario.");
+    "CONTEXTO DOCUMENTAL RECUPERADO");
 
         contenido.AppendLine(
-            "Usa estos fragmentos solo si son relevantes. " +
-            "Si no contienen la respuesta, indícalo con claridad.");
+            "INSTRUCCIONES OBLIGATORIAS PARA LA RESPUESTA:");
 
         contenido.AppendLine(
-            "Cuando uses información documental, cita la fuente con el " +
-            "formato [Documento #ID, páginas X-Y].");
+            "1. Usa los fragmentos siguientes como fuente para responder " +
+            "cuando sean relevantes para la pregunta.");
+
+        contenido.AppendLine(
+            "2. Cada afirmación basada en un fragmento debe incluir al final " +
+            "la cita exacta: [Documento #ID, páginas X-Y].");
+
+        contenido.AppendLine(
+            "3. Al final de la respuesta agrega una sección titulada " +
+            "\"Fuentes consultadas\" e incluye las citas de los documentos " +
+            "que utilizaste.");
+
+        contenido.AppendLine(
+            "4. No inventes datos ni atribuyas al documento información que " +
+            "no aparezca en los fragmentos.");
+
+        contenido.AppendLine(
+            "5. Si los fragmentos no contienen la respuesta, indícalo " +
+            "claramente y no incluyas una fuente documental.");
 
         var fragmentos = new List<FragmentoContextoRagDto>();
 

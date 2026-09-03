@@ -144,10 +144,14 @@ public class EnviarMensajeService : IEnviarMensajeService
             chatRequest,
             cancellationToken);
 
+        var respuestaConFuentes = AgregarFuentesDocumentales(
+            respuestaIA.Contenido,
+            contextoRag);
+
         await _mensajeService.RegistrarAsync(
             conversacion,
             RolMensaje.Asistente,
-            respuestaIA.Contenido,
+            respuestaConFuentes,
             respuestaIA.TiempoRespuestaMs,
             cancellationToken);
 
@@ -166,7 +170,7 @@ public class EnviarMensajeService : IEnviarMensajeService
         return new EnviarMensajeResponseDto
         {
             IdConversacion = conversacion.IdConversacion,
-            Respuesta = respuestaIA.Contenido,
+            Respuesta = respuestaConFuentes,
             TiempoRespuestaMs = respuestaIA.TiempoRespuestaMs
         };
     }
@@ -191,5 +195,44 @@ public class EnviarMensajeService : IEnviarMensajeService
         {
             return new ContextoRagDto();
         }
+    }
+
+    private static string AgregarFuentesDocumentales(
+    string respuesta,
+    ContextoRagDto contextoRag)
+    {
+        if (contextoRag.Fragmentos.Count == 0)
+        {
+            return respuesta;
+        }
+
+        var fuentes = contextoRag.Fragmentos
+            .Select(fragmento =>
+                $"[Documento #{fragmento.IdDocumento}, " +
+                $"páginas {fragmento.PaginaInicial}-" +
+                $"{fragmento.PaginaFinal}]")
+            .Distinct()
+            .ToArray();
+        if (respuesta.Contains(
+        "Fuentes consultadas",
+        StringComparison.OrdinalIgnoreCase))
+        {
+            return respuesta;
+        }
+        if (fuentes.Length == 0)
+        {
+            return respuesta;
+        }
+
+        var seccionFuentes = string.Join(
+            Environment.NewLine,
+            fuentes.Select(fuente => $"- {fuente}"));
+
+        return string.Join(
+            Environment.NewLine,
+            respuesta.TrimEnd(),
+            string.Empty,
+            "Fuentes consultadas:",
+            seccionFuentes);
     }
 }
