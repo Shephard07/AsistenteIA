@@ -116,6 +116,19 @@ public static class DependencyInjection
         httpClient.Timeout = Timeout.InfiniteTimeSpan;
     });
 
+        services.AddHttpClient<IVectorStore, ChromaVectorStore>(
+        (serviceProvider, httpClient) =>
+        {
+            var chromaOptions = serviceProvider
+                .GetRequiredService<IOptions<ChromaDbOptions>>()
+                .Value;
+
+            httpClient.BaseAddress = new Uri(
+                chromaOptions.BaseUrl.TrimEnd('/') + "/");
+
+            httpClient.Timeout = Timeout.InfiniteTimeSpan;
+        });
+
         services.AddOptions<ProcesamientoDocumentalOptions>()
     .Bind(configuration.GetSection(
         ProcesamientoDocumentalOptions.SectionName))
