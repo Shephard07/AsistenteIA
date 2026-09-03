@@ -30,8 +30,31 @@ public static class DependencyInjection
         services.Configure<OllamaOptions>(
             configuration.GetSection(OllamaOptions.SectionName));
 
+            services.AddOptions<ChromaDbOptions>()
+        .Bind(configuration.GetSection(
+            ChromaDbOptions.SectionName))
+        .Validate(
+            options => !string.IsNullOrWhiteSpace(
+                options.BaseUrl),
+            "La URL base de ChromaDB es obligatoria.")
+        .Validate(
+            options => !string.IsNullOrWhiteSpace(
+                options.NombreColeccion),
+            "El nombre de la colección de ChromaDB es obligatorio.")
+        .Validate(
+            options => !string.IsNullOrWhiteSpace(
+                options.Tenant),
+            "El tenant de ChromaDB es obligatorio.")
+        .Validate(
+            options => !string.IsNullOrWhiteSpace(
+                options.Database),
+            "La base de datos de ChromaDB es obligatoria.")
+        .ValidateOnStart();
+
         services.Configure<UsuarioInicialOptions>(
             configuration.GetSection(UsuarioInicialOptions.SectionName));
+
+
 
         services.AddScoped<InicializadorSeguridad>();
 
