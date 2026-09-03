@@ -15,11 +15,15 @@ public class EnviarMensajeService : IEnviarMensajeService
     private readonly IMensajeService _mensajeService;
     private readonly IAsistenteService _asistenteService;
     private readonly IPromptSistemaService _promptSistemaService;
+
     private readonly IConfiguracionMemoriaService
         _configuracionMemoriaService;
 
     private readonly IContextoConversacionalService
         _contextoConversacionalService;
+
+    private readonly IRecuperacionContextoRagService
+        _recuperacionContextoRagService;
 
     private readonly IGeneradorTituloConversacionService
         _generadorTituloConversacionService;
@@ -38,6 +42,8 @@ public class EnviarMensajeService : IEnviarMensajeService
         IPromptSistemaService promptSistemaService,
         IConfiguracionMemoriaService configuracionMemoriaService,
         IContextoConversacionalService contextoConversacionalService,
+        IRecuperacionContextoRagService
+            recuperacionContextoRagService,
         IGeneradorTituloConversacionService
             generadorTituloConversacionService,
         IPromptBuilder promptBuilder,
@@ -51,8 +57,13 @@ public class EnviarMensajeService : IEnviarMensajeService
         _promptSistemaService = promptSistemaService;
         _configuracionMemoriaService = configuracionMemoriaService;
         _contextoConversacionalService = contextoConversacionalService;
+
+        _recuperacionContextoRagService =
+            recuperacionContextoRagService;
+
         _generadorTituloConversacionService =
             generadorTituloConversacionService;
+
         _promptBuilder = promptBuilder;
         _aiProvider = aiProvider;
         _resumenConversacionService = resumenConversacionService;
@@ -118,11 +129,16 @@ public class EnviarMensajeService : IEnviarMensajeService
             conversacion.ResumenContexto,
             configuracionMemoria);
 
+        var contextoRag = await ObtenerContextoRagAsync(
+            request.Mensaje,
+            cancellationToken);
+
         var chatRequest = _promptBuilder.ConstruirSolicitudChat(
             asistente,
             promptActivo,
             contexto.Mensajes,
-            contexto.ResumenContexto);
+            contexto.ResumenContexto,
+            contextoRag.Contenido);
 
         var respuestaIA = await _aiProvider.SendAsync(
             chatRequest,
@@ -153,5 +169,27 @@ public class EnviarMensajeService : IEnviarMensajeService
             Respuesta = respuestaIA.Contenido,
             TiempoRespuestaMs = respuestaIA.TiempoRespuestaMs
         };
+    }
+
+    private async Task<ContextoRagDto> ObtenerContextoRagAsync(
+        string consulta,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _recuperacionContextoRagService
+                .RecuperarAsync(
+                    consulta,
+                    cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return new ContextoRagDto();
+        }
     }
 }

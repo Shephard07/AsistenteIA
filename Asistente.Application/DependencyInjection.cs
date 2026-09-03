@@ -57,6 +57,10 @@ public static class DependencyInjection
     IndexadorDocumentoService>();
 
         services.AddScoped<
+    IRecuperacionContextoRagService,
+    RecuperacionContextoRagService>();
+
+        services.AddScoped<
     INormalizadorContenidoDocumento,
     NormalizadorContenidoDocumentoService>();
 

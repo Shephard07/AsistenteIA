@@ -32,6 +32,10 @@ public class EnviarMensajeServiceTests
         _resumenConversacionServiceMock = new();
 
     private readonly Mock<IPromptBuilder> _promptBuilderMock = new();
+
+    private readonly Mock<IRecuperacionContextoRagService>
+    _recuperacionContextoRagServiceMock = new();
+
     private readonly Mock<IAIProvider> _aiProviderMock = new();
     private readonly EnviarMensajeRequestValidator _validator = new();
 
@@ -73,12 +77,13 @@ public class EnviarMensajeServiceTests
         Assert.Equal(250, response.TiempoRespuestaMs);
 
         _promptBuilderMock.Verify(
-            builder => builder.ConstruirSolicitudChat(
-                It.IsAny<AsistenteDto>(),
-                It.IsAny<PromptSistemaDto>(),
-                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
-                It.IsAny<string?>()),
-            Times.Once);
+    builder => builder.ConstruirSolicitudChat(
+        It.IsAny<AsistenteDto>(),
+        It.IsAny<PromptSistemaDto>(),
+        It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+        It.IsAny<string?>(),
+        It.IsAny<string?>()),
+    Times.Once);
 
         _mensajeServiceMock.Verify(
             service => service.RegistrarAsync(
@@ -216,21 +221,23 @@ public class EnviarMensajeServiceTests
         string? resumenEnviado = null;
 
         _promptBuilderMock
-            .Setup(builder => builder.ConstruirSolicitudChat(
-                It.IsAny<AsistenteDto>(),
-                It.IsAny<PromptSistemaDto>(),
-                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
-                It.IsAny<string?>()))
-            .Callback((
-                AsistenteDto asistente,
-                PromptSistemaDto prompt,
-                IReadOnlyCollection<MensajeDto> mensajes,
-                string? resumen) =>
-            {
-                mensajesEnviados = mensajes;
-                resumenEnviado = resumen;
-            })
-            .Returns(new ChatRequestDto());
+    .Setup(builder => builder.ConstruirSolicitudChat(
+        It.IsAny<AsistenteDto>(),
+        It.IsAny<PromptSistemaDto>(),
+        It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+        It.IsAny<string?>(),
+        It.IsAny<string?>()))
+    .Callback((
+        AsistenteDto asistente,
+        PromptSistemaDto prompt,
+        IReadOnlyCollection<MensajeDto> mensajes,
+        string? resumen,
+        string? contextoDocumental) =>
+    {
+        mensajesEnviados = mensajes;
+        resumenEnviado = resumen;
+    })
+    .Returns(new ChatRequestDto());
 
         _aiProviderMock
             .Setup(provider => provider.SendAsync(
@@ -367,18 +374,19 @@ public class EnviarMensajeServiceTests
             .Returns(Task.CompletedTask);
 
         _promptBuilderMock
-            .Setup(builder => builder.ConstruirSolicitudChat(
-                It.IsAny<AsistenteDto>(),
-                It.IsAny<PromptSistemaDto>(),
-                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
-                It.IsAny<string?>()))
-            .Returns(new ChatRequestDto
-            {
-                ModeloIA = "deepseek-r1:7b",
-                Temperatura = 0.5m,
-                MaxTokens = 512,
-                TimeoutSeconds = 120
-            });
+        .Setup(builder => builder.ConstruirSolicitudChat(
+            It.IsAny<AsistenteDto>(),
+            It.IsAny<PromptSistemaDto>(),
+            It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>()))
+        .Returns(new ChatRequestDto
+        {
+            ModeloIA = "deepseek-r1:7b",
+            Temperatura = 0.5m,
+            MaxTokens = 512,
+            TimeoutSeconds = 120
+        });
     }
 
     private void ConfigurarRegistroMensajes()
@@ -395,6 +403,12 @@ public class EnviarMensajeServiceTests
 
     private EnviarMensajeService CrearServicio()
     {
+        _recuperacionContextoRagServiceMock
+            .Setup(service => service.RecuperarAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ContextoRagDto());
+
         return new EnviarMensajeService(
             _conversacionServiceMock.Object,
             _mensajeServiceMock.Object,
@@ -402,6 +416,7 @@ public class EnviarMensajeServiceTests
             _promptSistemaServiceMock.Object,
             _configuracionMemoriaServiceMock.Object,
             _contextoConversacionalServiceMock.Object,
+            _recuperacionContextoRagServiceMock.Object,
             _generadorTituloConversacionServiceMock.Object,
             _promptBuilderMock.Object,
             _aiProviderMock.Object,

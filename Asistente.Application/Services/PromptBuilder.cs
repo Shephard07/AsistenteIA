@@ -38,6 +38,21 @@ public class PromptBuilder : IPromptBuilder
         IReadOnlyCollection<MensajeDto> mensajes,
         string? resumenContexto)
     {
+        return ConstruirSolicitudChat(
+            asistente,
+            prompt,
+            mensajes,
+            resumenContexto,
+            null);
+    }
+
+    public ChatRequestDto ConstruirSolicitudChat(
+        AsistenteDto asistente,
+        PromptSistemaDto prompt,
+        IReadOnlyCollection<MensajeDto> mensajes,
+        string? resumenContexto,
+        string? contextoDocumental)
+    {
         ArgumentNullException.ThrowIfNull(mensajes);
 
         var mensajesSolicitud = new List<MensajeDto>
@@ -61,6 +76,16 @@ public class PromptBuilder : IPromptBuilder
                         "Resumen de la conversación previa:",
                         resumenContexto.Trim()
                     ]),
+                FechaHora = DateTime.UtcNow
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(contextoDocumental))
+        {
+            mensajesSolicitud.Add(new MensajeDto
+            {
+                Rol = "system",
+                Contenido = contextoDocumental.Trim(),
                 FechaHora = DateTime.UtcNow
             });
         }
