@@ -23,6 +23,8 @@ public class DocumentoProcesado
 
     public int TotalChunks { get; private set; }
 
+    public DocumentoIndexado? Indexacion { get; private set; }
+
     public string Observaciones { get; private set; } = string.Empty;
 
     public ICollection<DocumentoChunk> Chunks { get; private set; }
