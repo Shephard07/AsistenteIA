@@ -54,6 +54,11 @@ public class AsistenteIADbContext : DbContext
 
     public DbSet<DocumentoChunk> DocumentosChunks
         => Set<DocumentoChunk>();
+    public DbSet<DocumentoIndexado> DocumentosIndexados
+    => Set<DocumentoIndexado>();
+
+    public DbSet<EmbeddingConfiguracion> ConfiguracionesEmbedding
+        => Set<EmbeddingConfiguracion>();
 
     public DbSet<ConfiguracionMemoria> ConfiguracionesMemoria
     => Set<ConfiguracionMemoria>();
@@ -740,6 +745,107 @@ public class AsistenteIADbContext : DbContext
             {
                 x.IdDocumento,
                 x.IdCategoria
+            });
+        });
+
+        modelBuilder.Entity<DocumentoIndexado>(entity =>
+        {
+            entity.ToTable("DocumentoIndexado");
+
+            entity.HasKey(x => x.IdDocumentoIndexado);
+
+            entity.Property(x => x.IdDocumentoIndexado)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.IdentificadorVectorial)
+                .IsRequired();
+
+            entity.HasIndex(x => x.IdentificadorVectorial)
+                .IsUnique();
+
+            entity.Property(x => x.FechaInicio);
+
+            entity.Property(x => x.FechaIndexacion);
+
+            entity.Property(x => x.Estado)
+                .HasConversion<string>()
+                .HasMaxLength(30)
+                .IsRequired();
+
+            entity.Property(x => x.TotalChunks)
+                .IsRequired();
+
+            entity.Property(x => x.TotalEmbeddings)
+                .IsRequired();
+
+            entity.Property(x => x.Observaciones)
+                .HasMaxLength(2000)
+                .IsRequired();
+
+            entity.HasOne(x => x.DocumentoProcesado)
+                .WithOne(x => x.Indexacion)
+                .HasForeignKey<DocumentoIndexado>(
+                    x => x.IdDocumentoProcesado)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.IdDocumentoProcesado)
+                .IsUnique();
+
+            entity.HasIndex(x => new
+            {
+                x.Estado,
+                x.FechaInicio
+            });
+        });
+
+        modelBuilder.Entity<EmbeddingConfiguracion>(entity =>
+        {
+            entity.ToTable("EmbeddingConfiguracion");
+
+            entity.HasKey(x => x.IdConfiguracion);
+
+            entity.Property(x => x.IdConfiguracion)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Proveedor)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.ModeloEmbeddings)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.BaseVectorial)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.CantidadResultados)
+                .IsRequired();
+
+            entity.Property(x => x.PuntajeMinimo)
+                .HasColumnType("decimal(4,2)")
+                .IsRequired();
+
+            entity.Property(x => x.LongitudMaximaContexto)
+                .IsRequired();
+
+            entity.Property(x => x.Activo)
+                .IsRequired();
+
+            entity.HasIndex(x => x.Activo)
+                .HasFilter("[Activo] = 1")
+                .IsUnique();
+
+            entity.HasData(new
+            {
+                IdConfiguracion = 1,
+                Proveedor = "Ollama",
+                ModeloEmbeddings = "nomic-embed-text",
+                BaseVectorial = "ChromaDB",
+                CantidadResultados = 4,
+                PuntajeMinimo = 0.35m,
+                LongitudMaximaContexto = 6000,
+                Activo = true
             });
         });
     }

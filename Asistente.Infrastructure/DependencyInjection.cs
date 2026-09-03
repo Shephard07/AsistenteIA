@@ -77,6 +77,14 @@ public static class DependencyInjection
     DocumentoProcesadoRepository>();
 
         services.AddScoped<
+    IDocumentoIndexadoRepository,
+    DocumentoIndexadoRepository>();
+
+        services.AddScoped<
+            IEmbeddingConfiguracionRepository,
+            EmbeddingConfiguracionRepository>();
+
+        services.AddScoped<
     IProcesadorDocumentoService,
     ProcesadorDocumentoService>();
 
