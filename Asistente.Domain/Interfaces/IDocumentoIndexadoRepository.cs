@@ -13,6 +13,10 @@ public interface IDocumentoIndexadoRepository
         int idDocumentoProcesado,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyCollection<DocumentoProcesado>>
+    ListarProcesamientosAsync(
+        CancellationToken cancellationToken = default);
+
     Task AgregarAsync(
         DocumentoIndexado documentoIndexado,
         CancellationToken cancellationToken = default);
