@@ -5,6 +5,9 @@ using Asistente.Domain.Enums;
 using Asistente.Domain.Interfaces;
 using Asistente.Infrastructure.Services;
 using Microsoft.Extensions.Logging;
+using Asistente.Infrastructure.Options;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -186,6 +189,86 @@ public class ProcesadorDocumentoServiceTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task EjecutarAsync_Debe_Ejecutar_Ciclo_Inicial_Del_Procesador()
+    {
+        var procesadorMock = new Mock<IProcesadorDocumentoService>();
+        var scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        var scopeMock = new Mock<IServiceScope>();
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        var optionsMonitorMock =
+            new Mock<IOptionsMonitor<ProcesamientoDocumentalOptions>>();
+
+        var cicloEjecutado = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        procesadorMock
+            .Setup(procesador => procesador.ProcesarPendientesAsync(
+                It.IsAny<CancellationToken>()))
+            .Callback<CancellationToken>(
+                _ => cicloEjecutado.TrySetResult(true))
+            .ReturnsAsync(0);
+
+        scopeFactoryMock
+            .Setup(factory => factory.CreateScope())
+            .Returns(scopeMock.Object);
+
+        scopeMock
+            .SetupGet(scope => scope.ServiceProvider)
+            .Returns(serviceProviderMock.Object);
+
+        serviceProviderMock
+            .Setup(provider => provider.GetService(
+                typeof(IProcesadorDocumentoService)))
+            .Returns(procesadorMock.Object);
+
+        optionsMonitorMock
+            .SetupGet(monitor => monitor.CurrentValue)
+            .Returns(new ProcesamientoDocumentalOptions
+            {
+                FrecuenciaSegundos = 60
+            });
+
+        var service = new ProcesamientoDocumentosBackgroundServicePrueba(
+            scopeFactoryMock.Object,
+            optionsMonitorMock.Object,
+            new Mock<
+                ILogger<ProcesamientoDocumentosBackgroundService>>().Object);
+
+        using var cancellationTokenSource =
+            new CancellationTokenSource();
+
+        var ejecucion = service.EjecutarParaPruebaAsync(
+            cancellationTokenSource.Token);
+
+        await cicloEjecutado.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+        cancellationTokenSource.Cancel();
+
+        try
+        {
+            await ejecucion;
+        }
+        catch (OperationCanceledException)
+        {
+            // La cancelación controlada finaliza el temporizador del worker.
+        }
+
+        procesadorMock.Verify(
+            procesador => procesador.ProcesarPendientesAsync(
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        scopeFactoryMock.Verify(
+            factory => factory.CreateScope(),
+            Times.Once);
+
+        serviceProviderMock.Verify(
+            provider => provider.GetService(
+                typeof(IProcesadorDocumentoService)),
+            Times.Once);
+    }
+
     private static ConfiguracionProcesamientoDocumentoDto
         CrearConfiguracion()
     {
@@ -209,5 +292,23 @@ public class ProcesadorDocumentoServiceTests
         var setter = propiedad?.GetSetMethod(nonPublic: true);
 
         setter?.Invoke(destino, new[] { valor });
+    }
+
+    private sealed class ProcesamientoDocumentosBackgroundServicePrueba
+    : ProcesamientoDocumentosBackgroundService
+    {
+        public ProcesamientoDocumentosBackgroundServicePrueba(
+            IServiceScopeFactory scopeFactory,
+            IOptionsMonitor<ProcesamientoDocumentalOptions> optionsMonitor,
+            ILogger<ProcesamientoDocumentosBackgroundService> logger)
+            : base(scopeFactory, optionsMonitor, logger)
+        {
+        }
+
+        public Task EjecutarParaPruebaAsync(
+            CancellationToken cancellationToken)
+        {
+            return ExecuteAsync(cancellationToken);
+        }
     }
 }
