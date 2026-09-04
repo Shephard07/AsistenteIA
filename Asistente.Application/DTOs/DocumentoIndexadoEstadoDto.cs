@@ -1,5 +1,4 @@
-﻿using Asistente.Domain.Enums;
-
+﻿
 namespace Asistente.Application.DTOs;
 
 public sealed class DocumentoIndexadoEstadoDto
@@ -18,7 +17,7 @@ public sealed class DocumentoIndexadoEstadoDto
 
     public int? IdDocumentoIndexado { get; init; }
 
-    public EstadoIndexacionDocumento Estado { get; init; }
+    public string Estado { get; init; } = string.Empty;
 
     public int TotalChunks { get; init; }
 

@@ -50,17 +50,17 @@ public class AdministracionRagService
             },
             TotalDocumentos = documentos.Length,
             TotalPendientes = documentos.Count(documento =>
-                documento.Estado ==
-                EstadoIndexacionDocumento.Pendiente),
+            documento.Estado ==
+            EstadoIndexacionDocumento.Pendiente.ToString()),
             TotalEnProceso = documentos.Count(documento =>
                 documento.Estado ==
-                EstadoIndexacionDocumento.EnProceso),
+                EstadoIndexacionDocumento.EnProceso.ToString()),
             TotalIndexados = documentos.Count(documento =>
                 documento.Estado ==
-                EstadoIndexacionDocumento.Indexado),
+                EstadoIndexacionDocumento.Indexado.ToString()),
             TotalConError = documentos.Count(documento =>
-                documento.Estado ==
-                EstadoIndexacionDocumento.Error),
+    documento.Estado ==
+    EstadoIndexacionDocumento.Error.ToString()),
             Documentos = documentos
         };
     }
@@ -78,6 +78,9 @@ public class AdministracionRagService
 
         var indexacion = procesamiento.Indexacion;
 
+        var estado = indexacion?.Estado ??
+    EstadoIndexacionDocumento.Pendiente;
+
         return new DocumentoIndexadoEstadoDto
         {
             IdDocumento = documento.IdDocumento,
@@ -89,8 +92,7 @@ public class AdministracionRagService
                 procesamiento.IdDocumentoProcesado,
             IdDocumentoIndexado =
                 indexacion?.IdDocumentoIndexado,
-            Estado = indexacion?.Estado ??
-                EstadoIndexacionDocumento.Pendiente,
+            Estado = estado.ToString(),
             TotalChunks = indexacion?.TotalChunks ??
                 procesamiento.TotalChunks,
             TotalEmbeddings = indexacion?.TotalEmbeddings ?? 0,
