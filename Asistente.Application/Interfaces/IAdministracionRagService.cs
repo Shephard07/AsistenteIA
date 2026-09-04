@@ -6,4 +6,10 @@ public interface IAdministracionRagService
 {
     Task<EstadoRagDto> ObtenerEstadoAsync(
         CancellationToken cancellationToken = default);
+
+    Task SolicitarReindexacionAsync(
+    int idDocumento,
+    int idUsuarioActor,
+    ContextoClienteDto contextoCliente,
+    CancellationToken cancellationToken = default);
 }

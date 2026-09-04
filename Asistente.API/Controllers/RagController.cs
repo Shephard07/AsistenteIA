@@ -2,6 +2,7 @@
 using Asistente.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Asistente.API.Helpers;
 
 namespace Asistente.API.Controllers;
 
@@ -40,5 +41,24 @@ public class RagController : ControllerBase
             .ObtenerEstadoAsync(cancellationToken);
 
         return Ok(estado);
+    }
+
+    /// <summary>
+    /// Solicita la reindexación de la versión activa de un documento.
+    /// </summary>
+    [HttpPost("documentos/{idDocumento:int}/reindexar")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> SolicitarReindexacion(
+        int idDocumento,
+        CancellationToken cancellationToken)
+    {
+        await _administracionRagService
+            .SolicitarReindexacionAsync(
+                idDocumento,
+                ContextoClienteFactory.ObtenerIdUsuario(HttpContext),
+                ContextoClienteFactory.Crear(HttpContext),
+                cancellationToken);
+
+        return NoContent();
     }
 }

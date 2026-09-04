@@ -15,12 +15,20 @@ public class AdministracionRagService
     private readonly IDocumentoIndexadoRepository
         _documentoIndexadoRepository;
 
+    private readonly IVectorStore _vectorStore;
+
+    private readonly IAuditoriaRepository _auditoriaRepository;
+
     public AdministracionRagService(
         IEmbeddingConfiguracionRepository configuracionRepository,
-        IDocumentoIndexadoRepository documentoIndexadoRepository)
+        IDocumentoIndexadoRepository documentoIndexadoRepository,
+        IVectorStore vectorStore,
+        IAuditoriaRepository auditoriaRepository)
     {
         _configuracionRepository = configuracionRepository;
         _documentoIndexadoRepository = documentoIndexadoRepository;
+        _vectorStore = vectorStore;
+        _auditoriaRepository = auditoriaRepository;
     }
 
     public async Task<EstadoRagDto> ObtenerEstadoAsync(
@@ -63,6 +71,85 @@ public class AdministracionRagService
     EstadoIndexacionDocumento.Error.ToString()),
             Documentos = documentos
         };
+    }
+
+    public async Task SolicitarReindexacionAsync(
+    int idDocumento,
+    int idUsuarioActor,
+    ContextoClienteDto contextoCliente,
+    CancellationToken cancellationToken = default)
+    {
+        if (idDocumento <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(idDocumento),
+                "El identificador del documento debe ser mayor que cero.");
+        }
+
+        if (idUsuarioActor <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(idUsuarioActor),
+                "El identificador del usuario debe ser mayor que cero.");
+        }
+
+        ArgumentNullException.ThrowIfNull(contextoCliente);
+
+        var procesamiento = await _documentoIndexadoRepository
+            .ObtenerProcesamientoActivoPorDocumentoAsync(
+                idDocumento,
+                cancellationToken);
+
+        if (procesamiento is null)
+        {
+            throw new KeyNotFoundException(
+                "El documento no tiene una versión procesada disponible " +
+                "para reindexar.");
+        }
+
+        if (procesamiento.TotalChunks <= 0)
+        {
+            throw new InvalidOperationException(
+                "El documento no contiene chunks disponibles para indexar.");
+        }
+
+        var indexacion = procesamiento.Indexacion;
+        var esReindexacion = indexacion is not null;
+
+        if (indexacion is null)
+        {
+            indexacion = new DocumentoIndexado(
+                procesamiento.IdDocumentoProcesado);
+
+            await _documentoIndexadoRepository.AgregarAsync(
+                indexacion,
+                cancellationToken);
+        }
+        else
+        {
+            indexacion.MarcarPendiente();
+
+            await _vectorStore.EliminarPorDocumentoAsync(
+                indexacion.IdentificadorVectorial,
+                cancellationToken);
+        }
+
+        var actividad = new AuditoriaActividad(
+            idUsuarioActor,
+            "RAG",
+            "SolicitarReindexacion",
+            esReindexacion
+                ? "Se solicitó la reindexación del documento."
+                : "Se solicitó la indexación del documento.",
+            contextoCliente.DireccionIP,
+            idDocumento);
+
+        await _auditoriaRepository.AgregarActividadAsync(
+            actividad,
+            cancellationToken);
+
+        await _documentoIndexadoRepository.GuardarCambiosAsync(
+            cancellationToken);
     }
 
     private static DocumentoIndexadoEstadoDto MapearDocumento(

@@ -73,6 +73,28 @@ public class DocumentoIndexadoRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<DocumentoProcesado?>
+    ObtenerProcesamientoActivoPorDocumentoAsync(
+        int idDocumento,
+        CancellationToken cancellationToken = default)
+    {
+        return _context.DocumentosProcesados
+            .Include(procesamiento => procesamiento.VersionDocumento)
+            .ThenInclude(version => version!.Documento)
+            .Include(procesamiento => procesamiento.Indexacion)
+            .FirstOrDefaultAsync(procesamiento =>
+                procesamiento.Estado ==
+                    EstadoProcesamientoDocumento.Procesado &&
+                procesamiento.VersionDocumento != null &&
+                procesamiento.VersionDocumento.IdDocumento ==
+                    idDocumento &&
+                procesamiento.VersionDocumento.Activo &&
+                procesamiento.VersionDocumento.Documento != null &&
+                procesamiento.VersionDocumento.Documento.Estado !=
+                    EstadoDocumento.Eliminado,
+                cancellationToken);
+    }
+
     public Task<DocumentoIndexado?> ObtenerPorProcesamientoAsync(
         int idDocumentoProcesado,
         CancellationToken cancellationToken = default)
