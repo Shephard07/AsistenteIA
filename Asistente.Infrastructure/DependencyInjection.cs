@@ -71,6 +71,9 @@ public static class DependencyInjection
 
         services.AddScoped<ICategoriaDocumentoRepository, CategoriaDocumentoRepository>();
         services.AddScoped<IDocumentoRepository, DocumentoRepository>();
+        services.AddScoped<
+    IDocumentoChunkRepository,
+    DocumentoChunkRepository>();
 
         services.AddScoped<
     IDocumentoProcesadoRepository,

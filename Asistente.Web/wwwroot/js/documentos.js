@@ -68,6 +68,20 @@ const observacionesProcesamiento = document.getElementById(
 
 const versionesDocumentoBody = document.getElementById(
     "versionesDocumentoBody");
+const panelChunksDocumento = document.getElementById(
+    "panelChunksDocumento");
+
+const tituloChunksDocumento = document.getElementById(
+    "tituloChunksDocumento");
+
+const metadatosChunksDocumento = document.getElementById(
+    "metadatosChunksDocumento");
+
+const contenedorChunksDocumento = document.getElementById(
+    "contenedorChunksDocumento");
+
+const btnCerrarChunksDocumento = document.getElementById(
+    "btnCerrarChunksDocumento");
 
 const btnCerrarDetalleDocumento = document.getElementById(
     "btnCerrarDetalleDocumento");
@@ -536,15 +550,97 @@ function renderizarVersiones(documento) {
                         ${version.activo ? "Vigente" : "Histórica"}
                     </span>
                 </td>
-                <td class="text-end">
+                <td class="text-end text-nowrap">
                     <button type="button"
-                            class="btn btn-outline-primary btn-sm"
+                            class="btn btn-outline-secondary btn-sm"
+                            data-accion="ver-chunks"
+                            data-version="${version.idVersion}">
+                        Ver chunks
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-outline-primary btn-sm ms-1"
                             data-accion="descargar-version"
                             data-version="${version.idVersion}">
                         Descargar
                     </button>
                 </td>
             </tr>`).join("");
+}
+
+function crearVistaChunk(chunk) {
+    const articulo = document.createElement("article");
+    articulo.className = "border rounded bg-light p-3";
+
+    const encabezado = document.createElement("div");
+    encabezado.className =
+        "d-flex flex-wrap justify-content-between gap-2 mb-2";
+
+    const titulo = document.createElement("span");
+    titulo.className = "fw-semibold";
+    titulo.textContent =
+        `Chunk ${chunk.numeroChunk} · orden ${chunk.orden}`;
+
+    const paginas = document.createElement("span");
+    paginas.className = "text-muted small";
+    paginas.textContent =
+        `Páginas ${chunk.paginaInicial}-${chunk.paginaFinal} · ` +
+        `${formatearNumero(chunk.totalCaracteres)} caracteres`;
+
+    encabezado.appendChild(titulo);
+    encabezado.appendChild(paginas);
+
+    const texto = document.createElement("pre");
+    texto.className = "mb-0 text-wrap";
+    texto.style.whiteSpace = "pre-wrap";
+    texto.textContent = chunk.texto;
+
+    articulo.appendChild(encabezado);
+    articulo.appendChild(texto);
+
+    return articulo;
+}
+
+async function cargarChunksDocumento(version) {
+    if (!documentoSeleccionado) {
+        return;
+    }
+
+    const chunks = await solicitar(
+        `/api/documentos/${documentoSeleccionado.idDocumento}` +
+        `/versiones/${version.idVersion}/chunks`);
+
+    tituloChunksDocumento.textContent =
+        `Chunks de la versión ${version.numeroVersion}`;
+
+    metadatosChunksDocumento.textContent =
+        chunks.length === 0
+            ? "Esta versión todavía no tiene chunks procesados."
+            : `${chunks.length} chunks · ` +
+            `Documento: ${chunks[0].codigoDocumento} · ` +
+            `Categoría: ${chunks[0].categoria}`;
+
+    contenedorChunksDocumento.innerHTML = "";
+
+    if (chunks.length === 0) {
+        const mensaje = document.createElement("p");
+        mensaje.className = "text-muted mb-0";
+        mensaje.textContent =
+            "No existen chunks para la versión seleccionada.";
+
+        contenedorChunksDocumento.appendChild(mensaje);
+    } else {
+        chunks.forEach(chunk => {
+            contenedorChunksDocumento.appendChild(
+                crearVistaChunk(chunk));
+        });
+    }
+
+    panelChunksDocumento.classList.remove("d-none");
+    panelChunksDocumento.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
 }
 
 async function cargarAuditoria(idDocumento) {
@@ -596,6 +692,9 @@ async function cargarDetalleDocumento(idDocumento) {
             "Sin descripción registrada.";
 
         renderizarVersiones(documentoSeleccionado);
+
+        panelChunksDocumento.classList.add("d-none");
+        contenedorChunksDocumento.innerHTML = "";
 
         panelDetalleDocumento.classList.remove("d-none");
 
@@ -723,8 +822,7 @@ documentosBody.addEventListener("click", async event => {
 });
 
 versionesDocumentoBody.addEventListener("click", async event => {
-    const boton = event.target.closest(
-        "button[data-accion='descargar-version']");
+    const boton = event.target.closest("button[data-accion]");
 
     if (!boton || !documentoSeleccionado) {
         return;
@@ -739,16 +837,29 @@ versionesDocumentoBody.addEventListener("click", async event => {
 
     try {
         boton.disabled = true;
-        boton.textContent = "Descargando...";
 
-        await descargarVersion(
-            documentoSeleccionado.idDocumento,
-            version);
+        if (boton.dataset.accion === "descargar-version") {
+            boton.textContent = "Descargando...";
+
+            await descargarVersion(
+                documentoSeleccionado.idDocumento,
+                version);
+        }
+
+        if (boton.dataset.accion === "ver-chunks") {
+            boton.textContent = "Cargando...";
+
+            await cargarChunksDocumento(version);
+        }
     } catch (error) {
         mostrarMensaje(error.message, true);
     } finally {
         boton.disabled = false;
-        boton.textContent = "Descargar";
+
+        boton.textContent =
+            boton.dataset.accion === "descargar-version"
+                ? "Descargar"
+                : "Ver chunks";
     }
 });
 
@@ -908,6 +1019,11 @@ if (puedeAdministrarDocumentos) {
             }
         });
 }
+
+btnCerrarChunksDocumento.addEventListener("click", () => {
+    panelChunksDocumento.classList.add("d-none");
+    contenedorChunksDocumento.innerHTML = "";
+});
 
 async function iniciarPaginaDocumentos() {
     try {

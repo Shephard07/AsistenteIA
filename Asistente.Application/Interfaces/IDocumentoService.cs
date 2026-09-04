@@ -17,6 +17,12 @@ public interface IDocumentoService
         int idDocumento,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyCollection<DocumentoChunkDetalleDto>>
+    ListarChunksAsync(
+        int idDocumento,
+        int idVersionDocumento,
+        CancellationToken cancellationToken = default);
+
     Task<DocumentoDetalleDto> CrearAsync(
         CrearDocumentoRequestDto request,
         ArchivoDocumentoCargaDto archivo,

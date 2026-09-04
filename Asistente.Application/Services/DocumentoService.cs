@@ -14,6 +14,7 @@ public class DocumentoService : IDocumentoService
     private readonly ICategoriaDocumentoRepository _categoriaRepository;
     private readonly IAlmacenamientoDocumentoService _almacenamientoService;
     private readonly IAuditoriaRepository _auditoriaRepository;
+    private readonly IDocumentoChunkRepository _documentoChunkRepository;
     private readonly IValidator<CrearDocumentoRequestDto> _crearValidator;
     private readonly IValidator<ActualizarDocumentoRequestDto>
         _actualizarValidator;
@@ -22,6 +23,7 @@ public class DocumentoService : IDocumentoService
         IDocumentoRepository documentoRepository,
         ICategoriaDocumentoRepository categoriaRepository,
         IAlmacenamientoDocumentoService almacenamientoService,
+        IDocumentoChunkRepository documentoChunkRepository,
         IAuditoriaRepository auditoriaRepository,
         IValidator<CrearDocumentoRequestDto> crearValidator,
         IValidator<ActualizarDocumentoRequestDto> actualizarValidator)
@@ -29,6 +31,7 @@ public class DocumentoService : IDocumentoService
         _documentoRepository = documentoRepository;
         _categoriaRepository = categoriaRepository;
         _almacenamientoService = almacenamientoService;
+        _documentoChunkRepository = documentoChunkRepository;
         _auditoriaRepository = auditoriaRepository;
         _crearValidator = crearValidator;
         _actualizarValidator = actualizarValidator;
@@ -64,6 +67,56 @@ public class DocumentoService : IDocumentoService
             cancellationToken);
 
         return MapearDetalle(documento);
+    }
+
+    public async Task<IReadOnlyCollection<DocumentoChunkDetalleDto>>
+    ListarChunksAsync(
+        int idDocumento,
+        int idVersionDocumento,
+        CancellationToken cancellationToken = default)
+    {
+        if (idVersionDocumento <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(idVersionDocumento),
+                "El identificador de la versión debe ser mayor que cero.");
+        }
+
+        var documento = await ObtenerDocumentoAsync(
+            idDocumento,
+            cancellationToken);
+
+        var version = documento.Versiones.FirstOrDefault(item =>
+            item.IdVersion == idVersionDocumento)
+            ?? throw new KeyNotFoundException(
+                "La versión solicitada no pertenece al documento.");
+
+        var chunks = await _documentoChunkRepository
+            .ListarPorDocumentoYVersionAsync(
+                idDocumento,
+                idVersionDocumento,
+                cancellationToken);
+
+        return chunks
+            .Select(chunk => new DocumentoChunkDetalleDto
+            {
+                IdChunk = chunk.IdChunk,
+                IdDocumento = documento.IdDocumento,
+                CodigoDocumento = documento.Codigo,
+                NombreDocumento = documento.Nombre,
+                IdVersionDocumento = version.IdVersion,
+                NumeroVersion = version.NumeroVersion,
+                IdCategoria = chunk.IdCategoria,
+                Categoria = documento.Categoria?.Nombre
+                    ?? "Sin categoría",
+                NumeroChunk = chunk.NumeroChunk,
+                Orden = chunk.Orden,
+                PaginaInicial = chunk.PaginaInicial,
+                PaginaFinal = chunk.PaginaFinal,
+                TotalCaracteres = chunk.TotalCaracteres,
+                Texto = chunk.Texto
+            })
+            .ToArray();
     }
 
     public async Task<DocumentoDetalleDto> CrearAsync(

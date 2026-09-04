@@ -25,6 +25,9 @@ public class DocumentoServiceTests
     private readonly Mock<IAlmacenamientoDocumentoService>
         _almacenamientoServiceMock = new();
 
+    private readonly Mock<IDocumentoChunkRepository>
+    _documentoChunkRepositoryMock = new();
+
     private readonly Mock<IAuditoriaRepository> _auditoriaRepositoryMock =
         new();
 
@@ -65,6 +68,86 @@ public class DocumentoServiceTests
         Assert.Equal("MAN-SEG-001", item.Codigo);
         Assert.Equal(1, item.VersionActual);
         Assert.Equal(EstadoDocumento.Activo.ToString(), item.Estado);
+    }
+
+    [Fact]
+    public async Task ListarChunksAsync_Debe_Devolver_Chunks_Con_Metadatos()
+    {
+        const int idVersionPrueba = 25;
+
+        var documento = CrearDocumentoConVersion();
+        AsignarIdDocumento(documento, IdDocumentoPrueba);
+
+        var version = Assert.Single(documento.Versiones);
+        AsignarIdVersion(version, idVersionPrueba);
+
+        ConfigurarDocumentoEncontrado(documento);
+
+        var chunkUno = new DocumentoChunk(
+            IdDocumentoPrueba,
+            idVersionPrueba,
+            1,
+            1,
+            1,
+            1,
+            "Primer fragmento del documento.",
+            1);
+
+        var chunkDos = new DocumentoChunk(
+            IdDocumentoPrueba,
+            idVersionPrueba,
+            1,
+            2,
+            2,
+            3,
+            "Segundo fragmento del documento.",
+            2);
+
+        _documentoChunkRepositoryMock
+            .Setup(repository => repository.ListarPorDocumentoYVersionAsync(
+                IdDocumentoPrueba,
+                idVersionPrueba,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                (IReadOnlyCollection<DocumentoChunk>)new[]
+                {
+                chunkUno,
+                chunkDos
+                });
+
+        var service = CrearServicio();
+
+        var resultado = await service.ListarChunksAsync(
+            IdDocumentoPrueba,
+            idVersionPrueba);
+
+        var items = resultado.ToArray();
+
+        Assert.Equal(2, items.Length);
+
+        Assert.Equal("MAN-SEG-001", items[0].CodigoDocumento);
+        Assert.Equal("Manual de seguridad", items[0].NombreDocumento);
+        Assert.Equal(1, items[0].NumeroVersion);
+        Assert.Equal(1, items[0].Orden);
+        Assert.Equal(1, items[0].PaginaInicial);
+        Assert.Equal(1, items[0].PaginaFinal);
+        Assert.Equal(
+            "Primer fragmento del documento.",
+            items[0].Texto);
+
+        Assert.Equal(2, items[1].Orden);
+        Assert.Equal(2, items[1].PaginaInicial);
+        Assert.Equal(3, items[1].PaginaFinal);
+        Assert.Equal(
+            "Segundo fragmento del documento.",
+            items[1].Texto);
+
+        _documentoChunkRepositoryMock.Verify(
+            repository => repository.ListarPorDocumentoYVersionAsync(
+                IdDocumentoPrueba,
+                idVersionPrueba,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -380,6 +463,7 @@ public class DocumentoServiceTests
             _documentoRepositoryMock.Object,
             _categoriaRepositoryMock.Object,
             _almacenamientoServiceMock.Object,
+            _documentoChunkRepositoryMock.Object,
             _auditoriaRepositoryMock.Object,
             _crearValidatorMock.Object,
             _actualizarValidatorMock.Object);
@@ -511,5 +595,17 @@ public class DocumentoServiceTests
         var setter = propiedad?.GetSetMethod(nonPublic: true);
 
         setter?.Invoke(documento, new object[] { idDocumento });
+    }
+
+    private static void AsignarIdVersion(
+    DocumentoVersion version,
+    int idVersion)
+    {
+        var propiedad = typeof(DocumentoVersion).GetProperty(
+            nameof(DocumentoVersion.IdVersion));
+
+        var setter = propiedad?.GetSetMethod(nonPublic: true);
+
+        setter?.Invoke(version, new object[] { idVersion });
     }
 }

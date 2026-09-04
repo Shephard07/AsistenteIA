@@ -162,6 +162,25 @@ public class DocumentosController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Lista los fragmentos de texto generados para una versión del documento.
+    /// </summary>
+    [HttpGet("{idDocumento:int}/versiones/{idVersion:int}/chunks")]
+    [Authorize(Roles = "Administrador,Operador")]
+    public async Task<ActionResult<IReadOnlyCollection<DocumentoChunkDetalleDto>>>
+        ListarChunks(
+            int idDocumento,
+            int idVersion,
+            CancellationToken cancellationToken)
+    {
+        var chunks = await _documentoService.ListarChunksAsync(
+            idDocumento,
+            idVersion,
+            cancellationToken);
+
+        return Ok(chunks);
+    }
+
     [HttpGet("{idDocumento:int}/versiones/{idVersion:int}/descarga")]
     [Authorize(Roles = "Administrador,Operador")]
     public async Task<IActionResult> Descargar(
