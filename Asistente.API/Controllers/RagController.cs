@@ -44,6 +44,29 @@ public class RagController : ControllerBase
     }
 
     /// <summary>
+    /// Actualiza los parámetros activos de recuperación RAG.
+    /// </summary>
+    [HttpPut("configuracion")]
+    [ProducesResponseType(
+        typeof(ConfiguracionRagDto),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ConfiguracionRagDto>>
+        ActualizarConfiguracion(
+            [FromBody] ActualizarConfiguracionRagRequestDto request,
+            CancellationToken cancellationToken)
+    {
+        var configuracion = await _administracionRagService
+            .ActualizarConfiguracionAsync(
+                request,
+                ContextoClienteFactory.ObtenerIdUsuario(HttpContext),
+                ContextoClienteFactory.Crear(HttpContext),
+                cancellationToken);
+
+        return Ok(configuracion);
+    }
+
+    /// <summary>
     /// Solicita la reindexación de la versión activa de un documento.
     /// </summary>
     [HttpPost("documentos/{idDocumento:int}/reindexar")]

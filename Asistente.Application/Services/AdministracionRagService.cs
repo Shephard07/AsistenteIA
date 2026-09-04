@@ -3,6 +3,9 @@ using Asistente.Application.Interfaces;
 using Asistente.Domain.Entities;
 using Asistente.Domain.Enums;
 using Asistente.Domain.Interfaces;
+using FluentValidation;
+using System.ComponentModel.DataAnnotations;
+
 
 namespace Asistente.Application.Services;
 
@@ -19,16 +22,21 @@ public class AdministracionRagService
 
     private readonly IAuditoriaRepository _auditoriaRepository;
 
+    private readonly IValidator<ActualizarConfiguracionRagRequestDto>
+    _validator;
+
     public AdministracionRagService(
-        IEmbeddingConfiguracionRepository configuracionRepository,
-        IDocumentoIndexadoRepository documentoIndexadoRepository,
-        IVectorStore vectorStore,
-        IAuditoriaRepository auditoriaRepository)
+    IEmbeddingConfiguracionRepository configuracionRepository,
+    IDocumentoIndexadoRepository documentoIndexadoRepository,
+    IVectorStore vectorStore,
+    IAuditoriaRepository auditoriaRepository,
+    IValidator<ActualizarConfiguracionRagRequestDto> validator)
     {
         _configuracionRepository = configuracionRepository;
         _documentoIndexadoRepository = documentoIndexadoRepository;
         _vectorStore = vectorStore;
         _auditoriaRepository = auditoriaRepository;
+        _validator = validator;
     }
 
     public async Task<EstadoRagDto> ObtenerEstadoAsync(
@@ -71,16 +79,7 @@ public class AdministracionRagService
     ? 0
     : Math.Round(duraciones.Average(), 2),
 
-            Configuracion = new ConfiguracionRagDto
-            {
-                Proveedor = configuracion.Proveedor,
-                ModeloEmbeddings = configuracion.ModeloEmbeddings,
-                BaseVectorial = configuracion.BaseVectorial,
-                CantidadResultados = configuracion.CantidadResultados,
-                PuntajeMinimo = configuracion.PuntajeMinimo,
-                LongitudMaximaContexto =
-                    configuracion.LongitudMaximaContexto
-            },
+            Configuracion = MapearConfiguracion(configuracion),
             TotalDocumentos = documentos.Length,
             TotalPendientes = documentos.Count(documento =>
             documento.Estado ==
@@ -96,6 +95,56 @@ public class AdministracionRagService
     EstadoIndexacionDocumento.Error.ToString()),
             Documentos = documentos
         };
+    }
+
+    public async Task<ConfiguracionRagDto>
+    ActualizarConfiguracionAsync(
+        ActualizarConfiguracionRagRequestDto request,
+        int idUsuarioActor,
+        ContextoClienteDto contextoCliente,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(contextoCliente);
+
+        if (idUsuarioActor <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(idUsuarioActor),
+                "El identificador del usuario debe ser mayor que cero.");
+        }
+
+        await _validator.ValidateAndThrowAsync(
+            request,
+            cancellationToken);
+
+        var configuracion = await _configuracionRepository
+            .ObtenerActivaAsync(cancellationToken);
+
+        configuracion.Actualizar(
+            configuracion.Proveedor,
+            request.ModeloEmbeddings,
+            configuracion.BaseVectorial,
+            request.CantidadResultados,
+            request.PuntajeMinimo,
+            request.LongitudMaximaContexto);
+
+        await _configuracionRepository.GuardarCambiosAsync(
+            cancellationToken);
+
+        await _auditoriaRepository.AgregarActividadAsync(
+            new AuditoriaActividad(
+                idUsuarioActor,
+                "RAG",
+                "ActualizarConfiguracionRag",
+                "Se actualizó la configuración de recuperación RAG.",
+                contextoCliente.DireccionIP),
+            cancellationToken);
+
+        await _auditoriaRepository.GuardarCambiosAsync(
+            cancellationToken);
+
+        return MapearConfiguracion(configuracion);
     }
 
     public async Task SolicitarReindexacionAsync(
@@ -194,6 +243,21 @@ public class AdministracionRagService
         {
             return false;
         }
+    }
+
+    private static ConfiguracionRagDto MapearConfiguracion(
+    EmbeddingConfiguracion configuracion)
+    {
+        return new ConfiguracionRagDto
+        {
+            Proveedor = configuracion.Proveedor,
+            ModeloEmbeddings = configuracion.ModeloEmbeddings,
+            BaseVectorial = configuracion.BaseVectorial,
+            CantidadResultados = configuracion.CantidadResultados,
+            PuntajeMinimo = configuracion.PuntajeMinimo,
+            LongitudMaximaContexto =
+                configuracion.LongitudMaximaContexto
+        };
     }
 
     private static DocumentoIndexadoEstadoDto MapearDocumento(

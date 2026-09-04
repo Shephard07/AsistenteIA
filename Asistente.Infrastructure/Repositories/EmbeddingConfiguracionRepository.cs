@@ -26,4 +26,10 @@ public class EmbeddingConfiguracionRepository
             ?? throw new InvalidOperationException(
                 "No existe una configuración de embeddings activa.");
     }
+
+    public Task GuardarCambiosAsync(
+    CancellationToken cancellationToken = default)
+    {
+        return _context.SaveChangesAsync(cancellationToken);
+    }
 }

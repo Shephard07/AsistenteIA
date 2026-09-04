@@ -4,7 +4,11 @@ const apiBaseUrlRag = paginaRag.dataset.apiBaseUrl.replace(/\/$/, "");
 const mensajeRag = document.getElementById("mensajeRag");
 const contenidoRag = document.getElementById("contenidoRag");
 const btnActualizarRag = document.getElementById("btnActualizarRag");
+const formularioConfiguracionRag = document.getElementById(
+    "formConfiguracionRag");
 
+const btnGuardarConfiguracionRag = document.getElementById(
+    "btnGuardarConfiguracionRag");
 function mostrarMensaje(mensaje, esError = false) {
     mensajeRag.textContent = mensaje;
     mensajeRag.className =
@@ -21,7 +25,13 @@ async function solicitar(url, opciones = {}) {
         `${apiBaseUrlRag}${url}`,
         {
             credentials: "include",
-            ...opciones
+            ...opciones,
+            headers: {
+                ...(opciones.body
+                    ? { "Content-Type": "application/json" }
+                    : {}),
+                ...(opciones.headers || {})
+            }
         });
 
     if (!response.ok) {
@@ -29,7 +39,12 @@ async function solicitar(url, opciones = {}) {
 
         try {
             const error = await response.json();
-            mensaje = error.mensaje || mensaje;
+
+            if (Array.isArray(error.errores)) {
+                mensaje = error.errores.join(" ");
+            } else {
+                mensaje = error.mensaje || mensaje;
+            }
         } catch {
             // La respuesta no contiene JSON.
         }
@@ -175,20 +190,20 @@ function mostrarEstado(estado) {
     document.getElementById("proveedorRag").textContent =
         estado.configuracion.proveedor;
 
-    document.getElementById("modeloEmbeddingsRag").textContent =
+    document.getElementById("modeloEmbeddingsRag").value =
         estado.configuracion.modeloEmbeddings;
 
     document.getElementById("baseVectorialRag").textContent =
         estado.configuracion.baseVectorial;
 
-    document.getElementById("cantidadResultadosRag").textContent =
+    document.getElementById("cantidadResultadosRag").value =
         estado.configuracion.cantidadResultados;
 
-    document.getElementById("puntajeMinimoRag").textContent =
+    document.getElementById("puntajeMinimoRag").value =
         estado.configuracion.puntajeMinimo;
 
-    document.getElementById("longitudContextoRag").textContent =
-        `${estado.configuracion.longitudMaximaContexto} caracteres`;
+    document.getElementById("longitudContextoRag").value =
+        estado.configuracion.longitudMaximaContexto;
 
     const tabla = document.getElementById("tablaDocumentosRag");
     tabla.innerHTML = "";
@@ -265,6 +280,46 @@ async function solicitarReindexacion(documento, boton) {
         mostrarMensaje(error.message, true);
     }
 }
+
+formularioConfiguracionRag.addEventListener(
+    "submit",
+    async event => {
+        event.preventDefault();
+        ocultarMensaje();
+
+        const solicitud = {
+            modeloEmbeddings: document.getElementById(
+                "modeloEmbeddingsRag").value.trim(),
+
+            cantidadResultados: Number(document.getElementById(
+                "cantidadResultadosRag").value),
+
+            puntajeMinimo: Number(document.getElementById(
+                "puntajeMinimoRag").value),
+
+            longitudMaximaContexto: Number(document.getElementById(
+                "longitudContextoRag").value)
+        };
+
+        btnGuardarConfiguracionRag.disabled = true;
+        btnGuardarConfiguracionRag.textContent = "Guardando...";
+
+        try {
+            await solicitar("/api/rag/configuracion", {
+                method: "PUT",
+                body: JSON.stringify(solicitud)
+            });
+
+            await cargarEstado(
+                "Configuración RAG actualizada correctamente.");
+        } catch (error) {
+            mostrarMensaje(error.message, true);
+        } finally {
+            btnGuardarConfiguracionRag.disabled = false;
+            btnGuardarConfiguracionRag.textContent =
+                "Guardar configuración RAG";
+        }
+    });
 
 btnActualizarRag.addEventListener("click", () => cargarEstado());
 

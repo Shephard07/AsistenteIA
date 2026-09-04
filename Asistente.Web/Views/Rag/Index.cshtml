@@ -108,42 +108,89 @@
         </section>
 
         <section class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h2 class="h5 mb-3">Configuración activa</h2>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="h5 mb-1">Configuración de recuperación</h2>
+                <p class="text-muted small mb-0">
+                    Define los parámetros que se usarán en las consultas RAG.
+                </p>
+            </div>
+        </div>
 
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <span class="text-muted small d-block">Proveedor</span>
-                        <strong id="proveedorRag"></strong>
-                    </div>
+        <form id="formConfiguracionRag" class="row g-3">
+            <div class="col-md-6">
+                <span class="text-muted small d-block">Proveedor activo</span>
+                <strong id="proveedorRag"></strong>
+            </div>
 
-                    <div class="col-md-4">
-                        <span class="text-muted small d-block">Modelo de embeddings</span>
-                        <strong id="modeloEmbeddingsRag"></strong>
-                    </div>
+            <div class="col-md-6">
+                <span class="text-muted small d-block">Base vectorial activa</span>
+                <strong id="baseVectorialRag"></strong>
+            </div>
 
-                    <div class="col-md-4">
-                        <span class="text-muted small d-block">Base vectorial</span>
-                        <strong id="baseVectorialRag"></strong>
-                    </div>
+            <div class="col-md-6">
+                <label for="modeloEmbeddingsRag" class="form-label">
+                    Modelo de embeddings
+                </label>
+                <input id="modeloEmbeddingsRag"
+                       class="form-control"
+                       type="text"
+                       maxlength="100"
+                       required />
+            </div>
 
-                    <div class="col-md-4">
-                        <span class="text-muted small d-block">Resultados recuperados</span>
-                        <strong id="cantidadResultadosRag"></strong>
-                    </div>
+            <div class="col-md-6">
+                <label for="cantidadResultadosRag" class="form-label">
+                    Resultados recuperados
+                </label>
+                <input id="cantidadResultadosRag"
+                       class="form-control"
+                       type="number"
+                       min="1"
+                       max="20"
+                       required />
+            </div>
 
-                    <div class="col-md-4">
-                        <span class="text-muted small d-block">Puntaje mínimo</span>
-                        <strong id="puntajeMinimoRag"></strong>
-                    </div>
+            <div class="col-md-6">
+                <label for="puntajeMinimoRag" class="form-label">
+                    Puntaje mínimo
+                </label>
+                <input id="puntajeMinimoRag"
+                       class="form-control"
+                       type="number"
+                       min="0"
+                       max="1"
+                       step="0.01"
+                       required />
+            </div>
 
-                    <div class="col-md-4">
-                        <span class="text-muted small d-block">Máximo de contexto</span>
-                        <strong id="longitudContextoRag"></strong>
-                    </div>
+            <div class="col-md-6">
+                <label for="longitudContextoRag" class="form-label">
+                    Máximo de contexto
+                </label>
+                <input id="longitudContextoRag"
+                       class="form-control"
+                       type="number"
+                       min="500"
+                       max="16000"
+                       required />
+
+                <div class="form-text">
+                    Cantidad máxima de caracteres enviados al modelo.
                 </div>
             </div>
-        </section>
+
+            <div class="col-12 text-end">
+                <button id="btnGuardarConfiguracionRag"
+                        type="submit"
+                        class="btn btn-primary">
+                    Guardar configuración RAG
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
 
         <section class="card shadow-sm">
             <div class="card-body">

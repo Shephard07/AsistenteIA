@@ -6,4 +6,6 @@ public interface IEmbeddingConfiguracionRepository
 {
     Task<EmbeddingConfiguracion> ObtenerActivaAsync(
         CancellationToken cancellationToken = default);
+    Task GuardarCambiosAsync(
+    CancellationToken cancellationToken = default);
 }
