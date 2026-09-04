@@ -298,6 +298,163 @@ public class EnviarMensajeServiceTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task EjecutarAsync_Debe_Recuperar_Contexto_Rag_Antes_De_Consultar_IA_Y_Agregar_Fuentes()
+    {
+        const string mensaje =
+            "¿Qué indica el procedimiento del documento?";
+
+        var conversacion = new Conversacion();
+        var ordenActual = 0;
+        var ordenRag = 0;
+        var ordenIA = 0;
+        string? contextoDocumentalEnviado = null;
+
+        ConfigurarAsistenteYPromptActivos();
+        ConfigurarRegistroMensajes();
+
+        _conversacionServiceMock
+            .Setup(service => service.ObtenerOCrearAsync(
+                null,
+                1,
+                IdUsuarioPrueba,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(conversacion);
+
+        _promptBuilderMock
+            .Setup(builder => builder.ConstruirSolicitudChat(
+                It.IsAny<AsistenteDto>(),
+                It.IsAny<PromptSistemaDto>(),
+                It.IsAny<IReadOnlyCollection<MensajeDto>>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>()))
+            .Callback((
+                AsistenteDto asistente,
+                PromptSistemaDto prompt,
+                IReadOnlyCollection<MensajeDto> mensajes,
+                string? resumen,
+                string? contextoDocumental) =>
+            {
+                contextoDocumentalEnviado = contextoDocumental;
+            })
+            .Returns(new ChatRequestDto
+            {
+                ModeloIA = "deepseek-r1:7b",
+                Temperatura = 0.5m,
+                MaxTokens = 512,
+                TimeoutSeconds = 120
+            });
+
+        _aiProviderMock
+            .Setup(provider => provider.SendAsync(
+                It.IsAny<ChatRequestDto>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<ChatRequestDto, CancellationToken>((_, _) =>
+            {
+                ordenIA = ++ordenActual;
+            })
+            .ReturnsAsync(new ChatResponseDto
+            {
+                Contenido = "El procedimiento fue completado.",
+                TiempoRespuestaMs = 180
+            });
+
+        var service = CrearServicio();
+
+        var contextoRag = new ContextoRagDto
+        {
+            Contenido = "CONTEXTO RAG DE PRUEBA",
+            Fragmentos = new[]
+            {
+                new FragmentoContextoRagDto
+                {
+                    IdDocumento = 15,
+                    IdVersionDocumento = 2,
+                    NumeroChunk = 1,
+                    PaginaInicial = 2,
+                    PaginaFinal = 3,
+                    Texto = "Primer fragmento recuperado.",
+                    Puntaje = 0.92m
+                },
+                new FragmentoContextoRagDto
+                {
+                    IdDocumento = 15,
+                    IdVersionDocumento = 2,
+                    NumeroChunk = 2,
+                    PaginaInicial = 2,
+                    PaginaFinal = 3,
+                    Texto = "Segundo fragmento del mismo documento.",
+                    Puntaje = 0.88m
+                },
+                new FragmentoContextoRagDto
+                {
+                    IdDocumento = 20,
+                    IdVersionDocumento = 1,
+                    NumeroChunk = 1,
+                    PaginaInicial = 4,
+                    PaginaFinal = 4,
+                    Texto = "Fragmento de otro documento.",
+                    Puntaje = 0.81m
+                }
+            }
+        };
+
+        _recuperacionContextoRagServiceMock
+            .Setup(service => service.RecuperarAsync(
+                mensaje,
+                It.IsAny<CancellationToken>()))
+            .Callback<string, CancellationToken>((_, _) =>
+            {
+                ordenRag = ++ordenActual;
+            })
+            .ReturnsAsync(contextoRag);
+
+        var response = await service.EjecutarAsync(
+            new EnviarMensajeRequestDto
+            {
+                Mensaje = mensaje
+            },
+            IdUsuarioPrueba);
+
+        var respuestaEsperada = string.Join(
+            Environment.NewLine,
+            "El procedimiento fue completado.",
+            string.Empty,
+            "Fuentes consultadas:",
+            "- [Documento #15, páginas 2-3]",
+            "- [Documento #20, páginas 4-4]");
+
+        Assert.Equal(respuestaEsperada, response.Respuesta);
+        Assert.Equal(180, response.TiempoRespuestaMs);
+        Assert.Equal(
+            "CONTEXTO RAG DE PRUEBA",
+            contextoDocumentalEnviado);
+
+        Assert.True(ordenRag > 0);
+        Assert.True(ordenRag < ordenIA);
+
+        _recuperacionContextoRagServiceMock.Verify(
+            rag => rag.RecuperarAsync(
+                mensaje,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _aiProviderMock.Verify(
+            provider => provider.SendAsync(
+                It.IsAny<ChatRequestDto>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        _mensajeServiceMock.Verify(
+            servicio => servicio.RegistrarAsync(
+                conversacion,
+                RolMensaje.Asistente,
+                respuestaEsperada,
+                180,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private void ConfigurarAsistenteYPromptActivos()
     {
         var asistente = new AsistenteDto
