@@ -16,4 +16,7 @@ public interface IVectorStore
     Task EliminarPorDocumentoAsync(
         Guid identificadorDocumentoIndexado,
         CancellationToken cancellationToken = default);
+
+    Task<bool> EstaDisponibleAsync(
+    CancellationToken cancellationToken = default);
 }

@@ -25,6 +25,35 @@ public class ChromaVectorStore : IVectorStore
         _logger = logger;
     }
 
+    public async Task<bool> EstaDisponibleAsync(
+    CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var response = await _httpClient.GetAsync(
+                "api/v2/heartbeat",
+                cancellationToken);
+
+            return response.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                "No fue posible verificar la disponibilidad de ChromaDB.");
+
+            return false;
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogWarning(
+                exception,
+                "No fue posible verificar la disponibilidad de ChromaDB.");
+
+            return false;
+        }
+    }
+
     public async Task IndexarAsync(
         DocumentoVectorialDto documento,
         CancellationToken cancellationToken = default)

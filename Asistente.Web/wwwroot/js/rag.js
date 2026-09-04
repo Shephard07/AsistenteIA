@@ -151,6 +151,27 @@ function mostrarEstado(estado) {
     document.getElementById("totalErroresRag").textContent =
         estado.totalConError;
 
+    document.getElementById("totalChunksRag").textContent =
+        estado.totalChunks;
+
+    document.getElementById("totalEmbeddingsRag").textContent =
+        estado.totalEmbeddings;
+
+    document.getElementById("tiempoPromedioRag").textContent =
+        `${estado.tiempoPromedioIndexacionSegundos} s`;
+
+    const estadoBaseVectorial = document.getElementById(
+        "estadoBaseVectorialRag");
+
+    estadoBaseVectorial.textContent =
+        estado.baseVectorialDisponible
+            ? "Disponible"
+            : "No disponible";
+
+    estadoBaseVectorial.className = estado.baseVectorialDisponible
+        ? "h5 mb-0 text-success"
+        : "h5 mb-0 text-danger";
+
     document.getElementById("proveedorRag").textContent =
         estado.configuracion.proveedor;
 

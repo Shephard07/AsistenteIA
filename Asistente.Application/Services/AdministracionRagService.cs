@@ -43,9 +43,34 @@ public class AdministracionRagService
         var documentos = procesamientos
             .Select(MapearDocumento)
             .ToArray();
+        var indexados = documentos
+    .Where(documento =>
+        documento.Estado ==
+        EstadoIndexacionDocumento.Indexado.ToString())
+    .ToArray();
+
+        var duraciones = indexados
+            .Where(documento =>
+                documento.FechaInicio.HasValue &&
+                documento.FechaIndexacion.HasValue)
+            .Select(documento =>
+                (decimal)(documento.FechaIndexacion!.Value -
+                    documento.FechaInicio!.Value).TotalSeconds)
+            .ToArray();
+
+        var baseVectorialDisponible = await ConsultarBaseVectorialAsync(
+            cancellationToken);
 
         return new EstadoRagDto
         {
+            BaseVectorialDisponible = baseVectorialDisponible,
+            TotalChunks = documentos.Sum(documento => documento.TotalChunks),
+            TotalEmbeddings = documentos.Sum(
+    documento => documento.TotalEmbeddings),
+            TiempoPromedioIndexacionSegundos = duraciones.Length == 0
+    ? 0
+    : Math.Round(duraciones.Average(), 2),
+
             Configuracion = new ConfiguracionRagDto
             {
                 Proveedor = configuracion.Proveedor,
@@ -150,6 +175,25 @@ public class AdministracionRagService
 
         await _documentoIndexadoRepository.GuardarCambiosAsync(
             cancellationToken);
+    }
+
+    private async Task<bool> ConsultarBaseVectorialAsync(
+    CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _vectorStore.EstaDisponibleAsync(
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static DocumentoIndexadoEstadoDto MapearDocumento(
