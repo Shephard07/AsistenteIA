@@ -1,0 +1,139 @@
+﻿@model Asistente.Web.Models.AdministracionViewModel
+
+@{
+    ViewData["Title"] = "Administración RAG";
+}
+
+<div id="ragPage"
+     data-api-base-url="@Model.ApiBaseUrl">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Administración RAG</h1>
+            <p class="text-muted mb-0">
+                Consulta el estado de la indexación documental y solicita
+                la reindexación de documentos.
+            </p>
+        </div>
+
+        <button id="btnActualizarRag"
+                type="button"
+                class="btn btn-outline-primary">
+            Actualizar estado
+        </button>
+    </div>
+
+    <div id="mensajeRag"
+         class="alert d-none"
+         role="alert"></div>
+
+    <div id="contenidoRag" class="d-none">
+        <section class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1">Documentos</p>
+                        <p id="totalDocumentosRag" class="h3 mb-0"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1">Indexados</p>
+                        <p id="totalIndexadosRag"
+                           class="h3 mb-0 text-success"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1">Pendientes o en proceso</p>
+                        <p id="totalPendientesRag"
+                           class="h3 mb-0 text-warning"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted small mb-1">Con error</p>
+                        <p id="totalErroresRag"
+                           class="h3 mb-0 text-danger"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Configuración activa</h2>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <span class="text-muted small d-block">Proveedor</span>
+                        <strong id="proveedorRag"></strong>
+                    </div>
+
+                    <div class="col-md-4">
+                        <span class="text-muted small d-block">Modelo de embeddings</span>
+                        <strong id="modeloEmbeddingsRag"></strong>
+                    </div>
+
+                    <div class="col-md-4">
+                        <span class="text-muted small d-block">Base vectorial</span>
+                        <strong id="baseVectorialRag"></strong>
+                    </div>
+
+                    <div class="col-md-4">
+                        <span class="text-muted small d-block">Resultados recuperados</span>
+                        <strong id="cantidadResultadosRag"></strong>
+                    </div>
+
+                    <div class="col-md-4">
+                        <span class="text-muted small d-block">Puntaje mínimo</span>
+                        <strong id="puntajeMinimoRag"></strong>
+                    </div>
+
+                    <div class="col-md-4">
+                        <span class="text-muted small d-block">Máximo de contexto</span>
+                        <strong id="longitudContextoRag"></strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Documentos procesados</h2>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Documento</th>
+                                <th>Versión</th>
+                                <th>Estado</th>
+                                <th>Chunks</th>
+                                <th>Embeddings</th>
+                                <th>Última indexación</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="tablaDocumentosRag"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/rag.js"
+            asp-append-version="true"></script>
+}
